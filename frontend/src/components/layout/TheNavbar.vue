@@ -24,7 +24,7 @@
       />
 
       <template v-if="isLoggedIn">
-        <RouterLink to="/mypage" class="btn ghost">마이페이지</RouterLink>
+        <RouterLink :to="{ name: 'mypage' }" class="btn ghost">마이페이지</RouterLink>
         <button class="btn" @click="onLogout">로그아웃</button>
       </template>
 

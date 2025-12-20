@@ -59,13 +59,7 @@
         />
 
         <!-- 리뷰 리스트 -->
-        <ReviewList
-          :reviews="reviews"
-          :my-username="myUsername"
-          @like="onLike"
-          @remove="onRemove"
-          @update="onUpdate"
-        />
+        <ReviewList :tmdb-id="tmdbId" />
       </section>
     </div>
   </main>

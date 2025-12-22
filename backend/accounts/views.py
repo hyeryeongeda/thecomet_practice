@@ -69,15 +69,33 @@ def me(request):
     return Response(UserSerializer(request.user).data)
 
 
+# backend/accounts/views.py
+
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
 def update_profile(request):
     user = request.user
-    serializer = ProfileUpdateSerializer(user, data=request.data, partial=True)
-    serializer.is_valid(raise_exception=True)
-    serializer.save()
-    return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+    
+    # 1. 비밀번호 변경 로직 (입력값이 있을 때만 실행)
+    old_password = request.data.get("old_password")
+    new_password = request.data.get("new_password")
+    
+    if old_password and new_password:
+        if not user.check_password(old_password):
+            return Response({"detail": "현재 비밀번호가 일치하지 않습니다."}, status=400)
+        user.set_password(new_password)
+        user.save()
+        # 비밀번호 변경 후 세션/토큰 유지를 위해 필요한 경우 처리 (SimpleJWT는 재로그인 필요 없음)
 
+    # 2. 프로필 정보 및 이미지 업데이트
+    # partial=True를 주어 일부 필드만 넘어와도 허용합니다.
+    serializer = ProfileUpdateSerializer(user, data=request.data, partial=True)
+    
+    if serializer.is_valid():
+        serializer.save()
+        return Response(UserSerializer(user).data)
+    
+    return Response(serializer.errors, status=400)
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])

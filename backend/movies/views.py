@@ -262,3 +262,17 @@ def my_likes_list(request):
         return Response(GenreSerializer(genres, many=True).data)
         
     return Response([])
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def my_movie_likes(request):
+    """
+    내가 좋아요한 장르나 인물 목록을 가져옵니다.
+    ?type=genre|person
+    """
+    like_type = request.query_params.get("type")
+    
+    # 아직 좋아요 모델이 구체화되지 않았다면 일단 빈 배열을 반환하여 404를 해결합니다.
+    # 나중에 관련 모델(GenreLike 등)을 만드시면 필터링 로직을 넣으세요.
+    return Response([])

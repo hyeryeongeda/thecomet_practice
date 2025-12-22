@@ -1,12 +1,16 @@
 # backend/reviews/serializers.py
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from .models import Review
+from movies.serializers import MovieListSerializer
 
+User = get_user_model()
 
-class ReviewUserSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    username = serializers.CharField()
-
+# ✅ 유저 정보를 객체로 보내기 위한 시리얼라이저 (익명 방지)
+class ReviewUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "profile_image"]
 
 class ReviewCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,16 +32,15 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("한줄평을 입력해 주세요.")
         return attrs
 
-
 class ReviewSerializer(serializers.ModelSerializer):
+    # ✅ 중요: user를 숫자가 아닌 객체(정보)로 내보냄
     user = ReviewUserSerializer(read_only=True)
+    movie = MovieListSerializer(read_only=True)
+    user_username = serializers.ReadOnlyField(source='user.username')
 
-    # ✅ DB annotate는 likes_count로 받고(views에서 annotate(likes_count=Count("likes")))
+    # ✅ DB annotate 수치와 프론트 사용 필드명(like_count) 통일
     likes_count = serializers.IntegerField(read_only=True)
-
-    # ✅ 프론트는 like_count를 쓰고 있으니까 그대로 내려주되, 실제 값은 likes_count에서 꺼내서 내려줌
     like_count = serializers.SerializerMethodField()
-
     is_liked = serializers.SerializerMethodField()
 
     class Meta:
@@ -46,6 +49,7 @@ class ReviewSerializer(serializers.ModelSerializer):
             "id",
             "movie",
             "user",
+            "user_username",
             "content",
             "watched",
             "rating",
@@ -55,20 +59,12 @@ class ReviewSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = [
-            "id",
-            "movie",
-            "user",
-            "likes_count",
-            "created_at",
-            "updated_at",
-        ]
+        read_only_fields = ["id", "movie", "user", "likes_count", "created_at", "updated_at"]
 
     def get_like_count(self, obj):
-        # annotate가 있으면 그 값을 우선 사용
+        # annotate된 값이 있으면 쓰고, 없으면 DB 직접 조회
         if hasattr(obj, "likes_count") and obj.likes_count is not None:
             return obj.likes_count
-        # annotate가 없으면 실제 relation count로 fallback
         return obj.likes.count()
 
     def get_is_liked(self, obj):
@@ -77,30 +73,26 @@ class ReviewSerializer(serializers.ModelSerializer):
             return False
         return obj.likes.filter(id=request.user.id).exists()
 
-
 class RecentReviewSerializer(serializers.ModelSerializer):
     user = ReviewUserSerializer(read_only=True)
-
+    # 홈 화면 카드용 영화 정보
+    movie = MovieListSerializer(read_only=True)
+    
     likes_count = serializers.IntegerField(read_only=True)
     like_count = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
-
-    # ✅ Home 카드 이동용 유지
-    movie_tmdb_id = serializers.IntegerField(source="movie.tmdb_id", read_only=True)
-    movie_title = serializers.CharField(source="movie.title", read_only=True)
 
     class Meta:
         model = Review
         fields = [
             "id",
             "user",
+            "movie",
             "content",
             "rating",
             "likes_count",
             "like_count",
             "is_liked",
-            "movie_tmdb_id",
-            "movie_title",
             "created_at",
         ]
 

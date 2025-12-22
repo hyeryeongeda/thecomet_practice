@@ -19,7 +19,7 @@
 
     <section class="sec">
       <div class="sec-head">
-        <h2 class="sec-title">최신 개봉작</h2>
+        <h2 class="sec-title">최신 개봉 작품</h2>
         <button class="more" @click="goMovies('latest')">더보기</button>
       </div>
       <p v-if="loading" class="muted">불러오는 중...</p>

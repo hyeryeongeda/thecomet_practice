@@ -85,8 +85,8 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = User
-        # 마이페이지 "username" 추가
-        fields = ["username", "name", "email", "birth_date", "gender", "profile_image"]
+        # 수정을 허용할 필드만 나열 (username은 제외)
+        fields = ["profile_image", "name", "email", "birth_date", "gender", "profile_image"]
 
     def validate_gender(self, value):
         # gender를 null/blank 허용이면 None/""도 허용

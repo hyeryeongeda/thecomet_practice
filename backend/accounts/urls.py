@@ -8,6 +8,7 @@ urlpatterns = [
     path("refresh/", TokenRefreshView.as_view()),
 
     path("me/", views.me),
+    path("profile/", views.update_profile, name="update_profile"),
     path("me/profile/", views.update_profile),
     path("me/theme/", views.update_theme),
 

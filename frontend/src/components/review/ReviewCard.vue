@@ -1,5 +1,5 @@
 <template>
-  <div class="review-card" @click="$emit('click')">
+  <div class="review-card" @click="goMovie">
     <div class="card-header">
       <div class="user-info">
         <div class="avatar-circle">
@@ -37,9 +37,24 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router' // 1. 라우터 불러오기
+
 const props = defineProps({
   review: { type: Object, required: true }
 })
+
+const router = useRouter() // 2. 라우터 인스턴스 생성
+
+// 3. 영화 상세 페이지 이동 함수
+const goMovie = () => {
+  // 백엔드 데이터 구조에 따라 tmdb_id 혹은 movie.tmdb_id 확인
+  const tmdbId = props.review.movie?.tmdb_id || props.review.movie_tmdb_id
+  if (tmdbId) {
+    router.push(`/movies/${tmdbId}`)
+  } else {
+    console.warn("영화 ID를 찾을 수 없습니다:", props.review)
+  }
+}
 
 const posterUrl = (path) => {
   if (!path) return ''

@@ -13,4 +13,5 @@ urlpatterns = [
 
     # ✅ people
     path("people/<int:tmdb_id>/", views.person_detail),
+    path("likes/", views.my_movie_likes, name="my_movie_likes"),
 ]

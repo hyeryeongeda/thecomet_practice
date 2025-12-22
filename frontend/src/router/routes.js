@@ -47,16 +47,23 @@ const routes = [
 
   { path: '/:pathMatch(.*)*', name: 'notfound', component: () => import('@/views/NotFoundView.vue') },
   { path: '/people/:tmdbId', name: 'person-detail', component: () => import('@/views/PersonDetailView.vue'), props: true },
+// src/router/index.js (또는 routes.js) 파일 내 해당 부분 찾기
 
+{
+  path: '/mypage/grid/:type',
+  name: 'mypage-grid',
+  /**
+   * [수정 핵심] import 경로를 새 폴더 위치로 변경합니다.
+   * @는 보통 src 폴더를 가리킵니다.
+   */
+  component: () => import('@/components/mypage/MyPageGridView.vue'),
+  
+  // 만약 @를 사용하지 않는 환경이라면 상대 경로로 작성하세요:
+  // component: () => import('../components/mypage/MyPageGridView.vue'),
+  
+  props: true // URL 파라미터를 props로 전달하고 싶을 때 사용
+}
 
-  // 기존 routes 배열 안에 추가 [마이페이지]
-  { 
-    path: '/mypage/list/:type', 
-    name: 'mypage-grid', 
-    component: () => import('@/views/MyPageGridView.vue'),
-    props: true,
-    meta: { requiresAuth: true }
-  },
 
 
 

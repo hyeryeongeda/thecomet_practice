@@ -29,7 +29,7 @@
 
       <!-- 인물 결과 -->
       <div v-else class="people">
-        <div v-for="p in results" :key="p.tmdb_id" class="person">
+        <div v-for="p in results" :key="p.tmdb_id" class="person" @click="router.push(`/people/${p.tmdb_id}`)" style="cursor: pointer;">
           <div class="avatar">
             <img v-if="p.profile_path" :src="img(p.profile_path)" />
             <div v-else class="empty">No</div>
@@ -66,35 +66,45 @@ function goDetail(tmdbId) {
   router.push(`/movies/${tmdbId}`)
 }
 
-async function setType(next) {
-  type.value = next
-  await router.replace({ path: '/search', query: { q: q.value, type: next } })
-  run() // 탭을 바꿀 때마다 해당 타입으로 다시 검색
-}
 
 async function run() {
   if (!q.value) return
   loading.value = true
   try {
+    // 1. 요청 시점에 현재 ref 값을 확실히 전달
     const data = await searchComet({ q: q.value, type: type.value })
     results.value = data.results || []
+    
+    // 2. 검색 후 URL 업데이트 (이미 업데이트 된 상태라면 중복 호출 방지됨)
     router.replace({ path: '/search', query: { q: q.value, type: type.value } })
+  } catch (err) {
+    console.error(err)
+    results.value = []
   } finally {
     loading.value = false
   }
 }
 
+function setType(next) {
+  type.value = next
+  run() // 탭 변경 시 바로 검색 실행
+}
+
+// URL의 쿼리 파라미터가 바뀔 때(뒤로가기 등)를 대비한 감시
+watch(
+  () => [route.query.q, route.query.type],
+  ([nextQ, nextType]) => {
+    if (nextQ) q.value = String(nextQ)
+    if (nextType) type.value = String(nextType)
+    run()
+  }
+)
+
 onMounted(() => {
   if (q.value) run()
 })
 
-watch(
-  () => route.query.q,
-  (next) => {
-    if (next == null) return
-    q.value = String(next)
-  }
-)
+
 </script>
 
 <style scoped>

@@ -7,5 +7,6 @@ urlpatterns = [
   path("genres/", views.genre_recommend),
   path("people/", views.people_recommend),
   path("users/", views.user_recommend),
+  path("taste/", views.taste_summary),
 ]
 

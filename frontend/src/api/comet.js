@@ -126,8 +126,6 @@ export async function toggleFollow(username) {
 // =========================
 
 // 1) AI 챗봇(취향분석/맞춤추천 공용)
-// POST /recommends/chat/
-// ✅ AI 챗(취향분석/추천 AI 공용)
 export async function postTasteChat(payload) {
   const { data } = await api.post('/recommends/ai/', payload, {
     headers: authHeaders(),
@@ -164,7 +162,17 @@ function authHeaders() {
 }
 
 
+// 검색
+
 export const searchComet = (params) => {
-  return axios.get('/api/movies/search/', { params }) 
-  // 여기서 params가 { q: '박찬욱', type: 'person' } 형태로 잘 가야 합니다.
+  return api.get('/movies/search/', { params })
+    .then(res => res.data)
+}
+
+// =========================
+// (taste page)
+// =========================
+export async function fetchTasteDNA() {
+  const { data } = await api.get('/recommends/taste/')
+  return data
 }

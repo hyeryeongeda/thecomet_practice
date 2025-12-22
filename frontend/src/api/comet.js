@@ -211,3 +211,21 @@ export async function updateMyProfile(formData) {
   return res.data
 }
 
+
+
+
+
+
+// 영화 디테일 페이지 
+// [추가] 비슷한 영화 가져오기
+export async function fetchSimilarMovies(tmdbId) {
+  // 백엔드 URL이 /movies/{id}/similar/ 라고 가정
+  // 만약 백엔드에 이 기능이 없다면, 우선은 fetchMovies()로 대체해서 목록만 채워드릴게요.
+  try {
+    const res = await api.get(`/movies/${tmdbId}/similar/`)
+    return res.data
+  } catch (e) {
+    console.warn("비슷한 영화 API가 없어서 추천 API로 대체합니다.")
+    return [] // 혹은 fetchMovies({ page: 1 }) 호출
+  }
+}

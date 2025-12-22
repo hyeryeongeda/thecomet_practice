@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Prefetch
 from .models import Movie, MovieCredit
-from django.db.models import Q
+from django.db.models import Q, Count
 
 from rest_framework.permissions import IsAuthenticated # 마이페이지 
 

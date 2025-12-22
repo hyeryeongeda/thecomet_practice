@@ -7,6 +7,7 @@ urlpatterns = [
     path("movie/<int:tmdb_id>/create/", views.create_movie_review), # POST: 리뷰 작성
     
     # 리뷰 개별 조작
+    path("comments/<int:comment_id>/", views.delete_review_comment), # [추가] 삭제입니댱
     path("<int:review_id>/", views.update_delete_review),         # PUT/DELETE
     path("<int:review_id>/like/", views.toggle_like),             # POST: 좋아요
     
@@ -22,5 +23,9 @@ urlpatterns = [
     # [추가] 영화 보고싶어요 토글
     path("movies/<int:tmdb_id>/wish/", views.toggle_movie_wish),
     
+
+
+    
+    path('movie/<int:tmdb_id>/my/', views.get_my_movie_review), # 이 줄 추가 ㅠㅜㅠㅜ 너가 삭제니? 
     
 ]

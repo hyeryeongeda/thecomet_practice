@@ -14,7 +14,11 @@ import {
   createReviewComment,
   fetchMyActivity,
   toggleReviewLike,
-  toggleMovieWish // [필수] 여기에 추가했습니다!
+  toggleMovieWish, // [필수] 여기에 추가했습니다!
+  deleteReview,
+  updateReview,
+  fetchMyReview,
+
 } from '@/api/comet'
 import MovieRow from '@/components/movie/MovieRow.vue'
 
@@ -146,23 +150,41 @@ async function onToggleWish() {
 }
 
 // [모달] 작성 핸들러
-function openWriteModal() {
+async function openWriteModal() {
   if (!authStore.isLoggedIn) return alert('로그인 필요')
+
+  try {
+    myReview.value = await fetchMyReview(Number(tmdbId.value)) // ✅ 있으면 객체, 없으면 null
+  } catch {
+    myReview.value = null
+  }
+
   showWriteModal.value = true
 }
 
 async function handleWriteSubmit(payload) {
-  // payload: { content: "내용", rating: 4 }
   try {
-    await createMovieReview(Number(tmdbId.value), {
+    const body = {
       content: payload.content,
-      rating: payload.rating, // 별점 반영!
-      watched: true
-    })
-    alert('코멘트가 등록되었습니다.')
+      rating: payload.rating,
+      watched: true,
+    }
+
+    if (myReview.value?.id) {
+      // ✅ 이미 레코드가 있으면 수정(=작성 이어서)
+      await updateReview(myReview.value.id, body)
+      alert('코멘트가 수정되었습니다.')
+    } else {
+      // ✅ 없으면 생성
+      await createMovieReview(Number(tmdbId.value), body)
+      alert('코멘트가 등록되었습니다.')
+    }
+
     showWriteModal.value = false
-    loadAll()
-  } catch { alert('이미 작성한 리뷰가 있습니다.') }
+    await loadAll()
+  } catch (e) {
+    alert('저장 실패')
+  }
 }
 
 // [모달] 목록 핸들러
@@ -203,19 +225,51 @@ async function handleReviewLike(reviewId) {
 // [기능 추가] 댓글 작성
 async function handleReplySubmit(content) {
   if (!authStore.isLoggedIn) return alert('로그인 필요')
+
+  // ✅ 삭제 후 null이면 "갱신만"
+  if (content === null) {
+    reviewComments.value = await fetchReviewComments(selectedReview.value.id)
+    return
+  }
+
   try {
     await createReviewComment(selectedReview.value.id, content)
-    // 댓글 목록 갱신
     reviewComments.value = await fetchReviewComments(selectedReview.value.id)
-    // 댓글 수 갱신 (선택 사항)
     selectedReview.value.comments_count = (selectedReview.value.comments_count || 0) + 1
-  } catch { alert('댓글 작성 실패') }
+  } catch {
+    alert('댓글 작성 실패')
+  }
 }
 
 function scrollCast(dir) { if(castRail.value) castRail.value.scrollBy({ left: dir*300, behavior:'smooth' }) }
 
 onMounted(loadAll)
 watch(() => tmdbId.value, loadAll)
+
+
+
+async function handleWriteDelete(reviewId) {
+  try {
+    await deleteReview(reviewId)
+    alert('삭제되었습니다.')
+    showWriteModal.value = false
+    myReview.value = null
+    await loadAll()
+  } catch {
+    alert('삭제 실패')
+  }
+}
+
+function handleReplyDelete(commentId) {
+  // ✅ 즉시 화면에서 제거
+  reviewComments.value = reviewComments.value.filter(c => c.id !== commentId)
+
+  // ✅ (선택) 댓글 수 갱신도 즉시 반영
+  if (selectedReview.value) {
+    selectedReview.value.comments_count = Math.max(0, (selectedReview.value.comments_count || 0) - 1)
+  }
+}
+
 </script>
 
 <template>
@@ -390,8 +444,10 @@ watch(() => tmdbId.value, loadAll)
     <ReviewWriteModal 
       v-if="showWriteModal"
       :movieTitle="movie ? movie.title : ''"
+      :existingReview="myReview"
       @close="showWriteModal = false"
       @submit="handleWriteSubmit"
+      @delete="handleWriteDelete"
     />
 
     <ReviewListModal
@@ -409,6 +465,7 @@ watch(() => tmdbId.value, loadAll)
       @close="showDetailModal = false"
       @submit-reply="handleReplySubmit"
       @toggle-like="handleReviewLike"
+      @delete-reply="handleReplyDelete"
     />
 
   </main>

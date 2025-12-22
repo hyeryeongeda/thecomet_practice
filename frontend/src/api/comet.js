@@ -264,3 +264,19 @@ export function toggleMovieWish(tmdbId) {
     .then(res => res.data)
 }
 
+
+
+// [추가] 영화 리뷰 삭제
+export function deleteMovieReview(reviewId) {
+  return api.delete(`/reviews/${reviewId}/`, authConfig())
+}
+
+export function deleteReviewComment(commentId) {
+  return api.delete(`/reviews/comments/${commentId}/`, authConfig())
+}
+
+export async function fetchMyReview(tmdbId) {
+  const res = await api.get(`/reviews/movie/${tmdbId}/my/`, authConfig())
+  if (res.status === 204) return null
+  return res.data
+}

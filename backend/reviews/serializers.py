@@ -81,6 +81,8 @@ class RecentReviewSerializer(serializers.ModelSerializer):
     likes_count = serializers.IntegerField(read_only=True)
     like_count = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
+    # ✅ [필수] 이 줄이 없으면 프론트에서 댓글 개수를 못 읽어서 카드가 안 뜰 수 있음!
+    comments_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Review

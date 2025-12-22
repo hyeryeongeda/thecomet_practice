@@ -11,12 +11,12 @@
       </div>
 
       <div class="modal-body">
-        
+
         <div class="review-meta-row">
           <div class="small-poster" v-if="posterUrl" @click="goToMovieDetail">
             <img :src="posterUrl" alt="Poster">
           </div>
-          
+
           <div class="meta-info">
             <div class="movie-title" v-if="review.movie" @click="goToMovieDetail">
               {{ review.movie.title }}
@@ -33,9 +33,9 @@
         </div>
 
         <div class="action-bar">
-          <button 
-            class="action-btn" 
-            :class="{ active: review.is_liked }" 
+          <button
+            class="action-btn"
+            :class="{ active: review.is_liked }"
             @click="$emit('toggle-like', review.id)"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -58,7 +58,14 @@
           <div v-for="reply in replies" :key="reply.id" class="reply-item">
             <div class="r-head">
               <span class="r-user">{{ reply.user.username }}</span>
-              <span class="r-date">{{ formatDate(reply.created_at) }}</span>
+              <div class="r-right">
+                <span class="r-date">{{ formatDate(reply.created_at) }}</span>
+                <button
+                  v-if="authStore.user?.id === reply.user.id"
+                  class="del-reply-btn"
+                  @click="onDeleteReply(reply.id)"
+                >삭제</button>
+              </div>
             </div>
             <div class="r-body">{{ reply.content }}</div>
           </div>
@@ -69,11 +76,11 @@
       </div>
 
       <div class="modal-footer">
-        <input 
-          type="text" 
-          v-model="replyText" 
-          class="reply-input" 
-          placeholder="댓글을 작성해주세요..." 
+        <input
+          type="text"
+          v-model="replyText"
+          class="reply-input"
+          placeholder="댓글을 작성해주세요..."
           @keyup.enter="onSubmit"
         />
         <button class="submit-btn" :disabled="!replyText.trim()" @click="onSubmit">등록</button>
@@ -85,21 +92,25 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { deleteReviewComment } from '@/api/comet'
 
 const props = defineProps({
   review: { type: Object, required: true },
   replies: { type: Array, default: () => [] },
   movie: { type: Object, default: null }
 })
-const emit = defineEmits(['close', 'submit-reply', 'toggle-like'])
+
+// ✅ delete-reply 이벤트만 추가 (기존 건드리지 않음)
+const emit = defineEmits(['close', 'submit-reply', 'toggle-like', 'delete-reply'])
+
 const router = useRouter()
+const authStore = useAuthStore()
 const replyText = ref('')
 
 const posterUrl = computed(() => {
   const m = props.review.movie || props.movie
-  if (m?.poster_path) {
-    return `https://image.tmdb.org/t/p/w200${m.poster_path}`
-  }
+  if (m?.poster_path) return `https://image.tmdb.org/t/p/w200${m.poster_path}`
   return null
 })
 
@@ -107,6 +118,17 @@ function onSubmit() {
   if (replyText.value.trim()) {
     emit('submit-reply', replyText.value)
     replyText.value = ''
+  }
+}
+
+async function onDeleteReply(commentId) {
+  if (!confirm('댓글을 삭제하시겠습니까?')) return
+  try {
+    await deleteReviewComment(commentId)
+    // ✅ 여기 핵심: 부모에게 "이 id 지웠다" 알려서 즉시 화면에서 제거
+    emit('delete-reply', commentId)
+  } catch (e) {
+    alert('삭제 실패')
   }
 }
 
@@ -177,7 +199,7 @@ function formatDate(dateString) {
   display: flex; align-items: center; gap: 6px; font-size: 13px; color: #777;
   background: none; border: none; padding: 0; cursor: pointer;
 }
-.action-item { cursor: default; } /* 댓글수는 클릭 안됨 */
+.action-item { cursor: default; }
 .action-btn:hover { color: #333; }
 .action-btn.active { color: #ff2f6e; font-weight: 700; }
 
@@ -189,7 +211,10 @@ function formatDate(dateString) {
 .reply-item { background: #f9f9f9; padding: 12px; border-radius: 8px; }
 .r-head { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px; }
 .r-user { font-weight: 700; color: #444; }
+.r-right { display: flex; align-items: center; gap: 8px; }
 .r-date { color: #aaa; }
+.del-reply-btn { font-size: 11px; color: #999; border: none; background: none; cursor: pointer; text-decoration: underline; padding: 0; }
+.del-reply-btn:hover { color: #ff2f6e; }
 .r-body { font-size: 14px; color: #333; line-height: 1.4; }
 
 /* 3. 하단 푸터 (입력창) */

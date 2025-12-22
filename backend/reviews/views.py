@@ -112,3 +112,4 @@ def recent_reviews(request):
         .order_by("-created_at")[:limit]
     )
     return Response(RecentReviewSerializer(qs, many=True).data)
+

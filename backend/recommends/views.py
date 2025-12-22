@@ -1,10 +1,9 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q, Count
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-
+from django.db.models import Q, Count, Avg, Prefetch
 from movies.models import Movie, Genre, Person
 from movies.serializers import MovieListSerializer, PersonSerializer
 
@@ -253,18 +252,27 @@ def _detect_review_rating_field():
     return None
 
 
+#
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def taste_summary(request):
     """
-    GET /api/recommends/taste/
-    리뷰(=봤다)를 기준으로 취향 통계를 만든다.
+    유저의 리뷰 데이터를 기반으로 취향 DNA 통계를 생성합니다.
     """
     me = request.user
-    tmdb_field = _detect_review_tmdb_field()
-    rating_field = _detect_review_rating_field()
+    
+    # 1. 내가 쓴 리뷰들 가져오기 (Movie 정보 포함)
+    # Review 모델의 'movie' 필드를 통해 Movie 모델의 tmdb_id에 접근합니다.
+    my_reviews_qs = Review.objects.filter(user=me).select_related("movie").order_by("-created_at")
+    
+    # 2. 본 영화 수 (tmdb_id 기준 중복 제거)
+    # movie__tmdb_id를 사용하여 관계를 타고 넘어갑니다.
+    tmdb_ids = list(
+        my_reviews_qs.values_list("movie__tmdb_id", flat=True).distinct()
+    )
+    watched_count = len(tmdb_ids)
 
-    if not tmdb_field:
+    if watched_count == 0:
         return Response({
             "watched_count": 0,
             "top_genre": "-",
@@ -272,40 +280,19 @@ def taste_summary(request):
             "recent_movie_title": "",
             "genre_scores": {},
             "recommended_movies": [],
-            "detail": "Review 모델에 tmdb_id 계열 필드가 없어 집계를 할 수 없습니다."
+            "detail": "작성된 리뷰가 없습니다."
         })
 
-    my_reviews_qs = Review.objects.filter(user=me).order_by("-id")
+    # 3. 평균 별점 (Review 모델의 rating 필드 사용)
+    # ratings = list(my_reviews_qs.values_list("rating", flat=True))
+    avg_rating = my_reviews_qs.aggregate(avg=Avg("rating"))["avg"] or 0
+    avg_rating = round(float(avg_rating), 1)
 
-    # ✅ 본 영화 수 = 내가 리뷰 쓴 영화의 distinct 개수
-    tmdb_ids = list(
-        my_reviews_qs.values_list(tmdb_field, flat=True).distinct()
-    )
-    watched_count = len(tmdb_ids)
+    # 4. 최근 본 영화 제목
+    latest_review = my_reviews_qs.first()
+    recent_movie_title = latest_review.movie.title if latest_review else ""
 
-    # ✅ 영화 정보(Movie 테이블)에 해당 tmdb_id가 있어야 장르/제목을 뽑을 수 있음
-    movie_qs = Movie.objects.filter(tmdb_id__in=tmdb_ids).prefetch_related("genres")
-
-    # ✅ 최근 본 영화(=최근 리뷰 영화)
-    recent_movie_title = ""
-    latest = my_reviews_qs.first()
-    if latest:
-        latest_tmdb = getattr(latest, tmdb_field, None)
-        if latest_tmdb:
-            m = movie_qs.filter(tmdb_id=latest_tmdb).first()
-            if m:
-                recent_movie_title = m.title or ""
-
-    # ✅ 평균 별점 (별점 필드가 없으면 0)
-    avg_rating = 0
-    if rating_field:
-        ratings = list(my_reviews_qs.values_list(rating_field, flat=True))
-        ratings = [float(r) for r in ratings if r is not None]
-        if ratings:
-            avg_rating = round(sum(ratings) / len(ratings), 1)
-
-    # ✅ 장르 선호도(리뷰한 영화들의 장르 빈도)
-    # Movie.genres M2M 기준으로 집계
+    # 5. 장르 선호도 집계
     genre_rows = (
         Movie.objects
         .filter(tmdb_id__in=tmdb_ids)
@@ -314,34 +301,25 @@ def taste_summary(request):
         .order_by("-cnt")
     )
 
-    genre_count_map = {}
-    for row in genre_rows:
-        name = row["genres__name"]
-        if not name:
-            continue
-        genre_count_map[name] = row["cnt"]
+    genre_count_map = {row["genres__name"]: row["cnt"] for row in genre_rows if row["genres__name"]}
 
-    # top genre 문자열(가장 많이 등장한 장르 1~2개 합치기)
+    # Top 장르 (최대 2개)
     top_genres_sorted = sorted(genre_count_map.items(), key=lambda x: x[1], reverse=True)
-    if top_genres_sorted:
-        top_genre = "/".join([g for g, _ in top_genres_sorted[:2]])
-    else:
-        top_genre = "-"
+    top_genre = "/".join([g for g, _ in top_genres_sorted[:2]]) if top_genres_sorted else "-"
 
-    # radar 점수: 라벨 리스트에 맞춰 0~100 스케일
+    # Radar 차트용 점수 (0~100 스케일)
     max_cnt = max(genre_count_map.values(), default=0)
     genre_scores = {}
     for label in GENRE_LABELS:
         c = genre_count_map.get(label, 0)
         genre_scores[label] = int((c / max_cnt) * 100) if max_cnt else 0
 
-    # ✅ 추천 영화: 내가 많이 본 장르(top 1~2개) 기반으로, 아직 리뷰 안 쓴 영화 추천
+    # 6. 취향 맞춤 영화 추천 (내가 많이 본 장르 기반, 이미 본 영화 제외)
     top_genre_names = [g for g, _ in top_genres_sorted[:2]]
     rec_qs = Movie.objects.all().prefetch_related("genres")
 
     if top_genre_names:
         rec_qs = rec_qs.filter(genres__name__in=top_genre_names).distinct()
-
     if tmdb_ids:
         rec_qs = rec_qs.exclude(tmdb_id__in=tmdb_ids)
 

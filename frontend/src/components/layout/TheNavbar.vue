@@ -1,171 +1,158 @@
 <template>
-  <nav :class="['navbar', { 'is-transparent': isDetailPage }]">
-    <div class="navbar-inner">
-      
-      <div class="nav-left">
-        <router-link to="/" class="logo-area">
-          <img src="@/assets/comet_logo.png" alt="혜성" class="logo-img" /> 
-          <span class="logo-text">혜성</span>
-        </router-link>
+  <header :class="['nav-container', { 'transparent': isDetailPage }]">
+    
+    <div class="nav-inner">
+      <div class="left">
+        <RouterLink to="/" class="brand">
+          <img :src="logoUrl" class="logo" alt="혜성 로고" />
+          <span class="brand-text">혜성</span>
+        </RouterLink>
 
-        <div class="menu-links">
-          <router-link to="/" class="menu-item">홈</router-link>
-          <router-link :to="{ name: 'movies' }" class="menu-item">영화</router-link>
-          <router-link :to="{ name: 'taste' }" class="menu-item">취향분석</router-link>
-          <router-link :to="{ name: 'recommend' }" class="menu-item">추천</router-link>
-        </div>
+        <nav class="menu">
+          <RouterLink to="/" class="link">홈</RouterLink>
+          <RouterLink :to="{ name: 'movies' }" class="link">영화</RouterLink>
+          <RouterLink to="/taste" class="link">취향분석</RouterLink>
+          <RouterLink to="/recommend" class="link">추천</RouterLink>
+        </nav>
       </div>
 
-      <div class="nav-right">
-        <form @submit.prevent="onSearch" class="search-form">
-          <input 
-            v-model="keyword" 
-            type="text" 
-            placeholder="콘텐츠, 인물, 유저 검색" 
-            class="search-input"
-          />
-        </form>
+      <div class="right">
+        <input
+          class="search"
+          type="text"
+          placeholder="검색"
+          v-model="q"
+          @keyup.enter="goSearch"
+        />
 
-        <div class="auth-buttons">
-          <template v-if="isLoggedIn">
-            <button class="nav-btn outline" @click="goMyPage">마이페이지</button>
-            <button class="nav-btn solid" @click="onLogout">로그아웃</button>
-          </template>
-          <template v-else>
-            <button class="nav-btn text" @click="router.push('/login')">로그인</button>
-            <button class="nav-btn solid" @click="router.push('/signup')">회원가입</button>
-          </template>
-        </div>
+        <template v-if="isLoggedIn">
+          <RouterLink :to="{ name: 'mypage' }" class="btn ghost">마이페이지</RouterLink>
+          <button class="btn" @click="onLogout">로그아웃</button>
+        </template>
+
+        <template v-else>
+          <RouterLink to="/login" class="btn ghost">로그인</RouterLink>
+          <RouterLink to="/signup" class="btn">회원가입</RouterLink>
+        </template>
       </div>
-
     </div>
-  </nav>
+  </header>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router' // useRoute 추가
 import { useAuthStore } from '@/stores/auth'
+import logoUrl from '@/assets/comet_logo.png'
 
 const router = useRouter()
-const route = useRoute()
-const authStore = useAuthStore()
+const route = useRoute() // 현재 주소 정보 가져오기
+const auth = useAuthStore()
 
-const keyword = ref('')
+const q = ref('')
 
-// 로그인 상태 체크 (Store 사용 권장)
-const isLoggedIn = computed(() => authStore.isAuthenticated) // 또는 !!localStorage.getItem('access')
-
-// [핵심] 현재 페이지가 '영화 상세'인지 확인
+// [핵심] 현재 페이지가 영화 상세페이지인지 확인
 const isDetailPage = computed(() => route.name === 'movie-detail')
 
-function onSearch() {
-  if (!keyword.value.trim()) return
-  router.push({ name: 'search', query: { q: keyword.value } })
-}
+// 로그인 상태 체크 (스토어 상태가 반응형으로 동작하도록)
+const isLoggedIn = computed(() => auth.isLoggedIn || auth.isAuthenticated) 
 
-function goMyPage() {
-  router.push({ name: 'mypage' })
+function goSearch() {
+  const keyword = q.value.trim()
+  if (!keyword) return
+  router.push({ name: 'search', query: { q: keyword } })
+  q.value = ''
 }
 
 function onLogout() {
-  authStore.logout()
-  router.push('/')
+  auth.logout()
+  router.push('/') // 로그아웃 후 홈으로 이동
 }
 </script>
 
 <style scoped>
-/* 1. Navbar 기본 틀 (고정) */
-.navbar {
+/* 1. 네비게이션 컨테이너 (배경 및 위치) */
+.nav-container {
   position: fixed; /* 상단 고정 */
   top: 0; left: 0; right: 0;
-  height: 60px;
-  background-color: #fff; /* 기본 흰색 배경 */
+  width: 100%;
+  height: 60px; /* 높이 고정 */
+  background: white; /* 기본 배경 */
   border-bottom: 1px solid #eee;
-  z-index: 100;
+  z-index: 9999; /* 항상 맨 위에 */
   transition: background-color 0.3s, border-color 0.3s;
 }
 
-/* 2. [핵심] 투명 모드 (상세페이지용) */
-.navbar.is-transparent {
-  background-color: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15); /* 살짝 라인 */
+/* 2. 내부 컨텐츠 정렬 (1100px 제한) */
+.nav-inner {
+  max-width: 1100px;
+  margin: 0 auto; /* 가운데 정렬 */
+  height: 100%;
+  padding: 0 20px; /* 좌우 여백 */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* 투명 모드일 때 글자색 변경 */
-.navbar.is-transparent .logo-text,
-.navbar.is-transparent .menu-item {
+/* 3. 투명 모드 스타일 (상세페이지용) */
+.nav-container.transparent {
+  background-color: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 투명 모드일 때 글자색 변경 (흰색) */
+.nav-container.transparent .link,
+.nav-container.transparent .brand-text,
+.nav-container.transparent .btn.ghost {
   color: rgba(255, 255, 255, 0.9);
 }
-.navbar.is-transparent .menu-item:hover,
-.navbar.is-transparent .menu-item.router-link-active {
+
+.nav-container.transparent .link:hover,
+.nav-container.transparent .link.router-link-active {
   color: #fff;
+  font-weight: 800;
 }
 
-/* 3. 레이아웃 중앙 정렬 (1100px) */
-.navbar-inner {
-  max-width: 1100px; /* 홈 화면과 동일한 너비 */
-  margin: 0 auto;    /* 가운데 정렬 */
-  height: 100%;
-  padding: 0 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* 좌측 영역 */
-.nav-left { display: flex; align-items: center; gap: 30px; }
-.logo-area { display: flex; align-items: center; gap: 8px; text-decoration: none; }
-.logo-img { height: 28px; }
-.logo-text { font-size: 20px; font-weight: 800; color: #000; letter-spacing: -0.5px; }
-
-.menu-links { display: flex; gap: 20px; }
-.menu-item {
-  text-decoration: none; color: #777; font-size: 15px; font-weight: 600;
-  transition: color 0.2s;
-}
-.menu-item:hover, .menu-item.router-link-active { color: #000; }
-
-/* 우측 영역 */
-.nav-right { display: flex; align-items: center; gap: 20px; }
-
-/* 검색창 */
-.search-form { position: relative; }
-.search-input {
-  background: #f5f5f5; border: 1px solid transparent;
-  padding: 8px 12px; border-radius: 4px; font-size: 13px; width: 240px;
-  transition: all 0.2s;
-}
-.search-input:focus { background: #fff; border-color: #ddd; outline: none; }
-
-/* 투명 모드일 때 검색창 스타일 조정 (반투명) */
-.navbar.is-transparent .search-input {
-  background: rgba(0, 0, 0, 0.3); 
+/* 투명 모드일 때 검색창 반투명 처리 */
+.nav-container.transparent .search {
+  background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
+  color: white;
 }
-.navbar.is-transparent .search-input::placeholder { color: rgba(255, 255, 255, 0.6); }
+.nav-container.transparent .search::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
 
-/* 버튼 그룹 */
-.auth-buttons { display: flex; gap: 8px; }
-.nav-btn {
-  padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer;
+
+/* --- 기존 스타일 유지 --- */
+.left { display: flex; align-items: center; gap: 20px; }
+.brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
+.logo { width: 28px; height: 28px; object-fit: contain; }
+.brand-text { font-weight: 800; font-size: 18px; }
+
+.menu { display: flex; gap: 16px; }
+.link { text-decoration: none; color: #444; font-size: 15px; font-weight: 600; transition: color 0.2s; }
+.link.router-link-active { color: #000; font-weight: 800; }
+
+.right { display: flex; align-items: center; gap: 10px; }
+.search {
+  width: 200px; padding: 7px 12px;
+  border: 1px solid #ddd; border-radius: 6px;
+  background: #f5f5f5; outline: none; font-size: 13px;
   transition: all 0.2s;
 }
-.nav-btn.text { background: none; border: none; color: #666; }
-.nav-btn.text:hover { color: #000; }
+.search:focus { background: white; border-color: #333; }
 
-.nav-btn.outline {
-  background: white; border: 1px solid #d1d1d1; color: #000;
+.btn {
+  padding: 7px 12px; border-radius: 6px;
+  text-decoration: none; cursor: pointer; font-size: 13px; font-weight: 700;
+  border: 1px solid #333; background: #333; color: #fff;
+  transition: opacity 0.2s;
 }
-.nav-btn.outline:hover { background: #f9f9f9; }
+.btn:hover { opacity: 0.8; }
 
-.nav-btn.solid {
-  background: #111; border: 1px solid #111; color: white;
+.btn.ghost {
+  background: transparent; border: 1px solid transparent; color: #555;
 }
-.nav-btn.solid:hover { background: #333; }
-
-/* 투명 모드일 때 버튼 스타일 조정 */
-.navbar.is-transparent .nav-btn.text { color: rgba(255, 255, 255, 0.8); }
-.navbar.is-transparent .nav-btn.text:hover { color: #fff; }
+.btn.ghost:hover { color: #111; background: rgba(0,0,0,0.05); }
 </style>

@@ -83,6 +83,7 @@ export async function toggleReviewLike(reviewId) {
   return res.data
 }
 
+
 // =========================
 // accounts
 // =========================
@@ -217,15 +218,49 @@ export async function updateMyProfile(formData) {
 
 
 // 영화 디테일 페이지 
-// [추가] 비슷한 영화 가져오기
+// [완벽 구현] 비슷한 영화 API 호출
 export async function fetchSimilarMovies(tmdbId) {
-  // 백엔드 URL이 /movies/{id}/similar/ 라고 가정
-  // 만약 백엔드에 이 기능이 없다면, 우선은 fetchMovies()로 대체해서 목록만 채워드릴게요.
   try {
     const res = await api.get(`/movies/${tmdbId}/similar/`)
     return res.data
   } catch (e) {
-    console.warn("비슷한 영화 API가 없어서 추천 API로 대체합니다.")
-    return [] // 혹은 fetchMovies({ page: 1 }) 호출
+    console.warn("Similar fetch failed", e)
+    return []
   }
 }
+
+// [추가] 영화 좋아요 토글
+export async function toggleMovieLike(tmdbId) {
+  const res = await api.post(`/movies/${tmdbId}/like/`, {}, authConfig())
+  return res.data
+}
+
+
+
+
+
+
+// [추가] 대댓글 목록 가져오기
+export async function fetchReviewComments(reviewId) {
+  const res = await api.get(`/reviews/${reviewId}/comments/`)
+  return res.data
+}
+
+// [추가] 대댓글 작성하기
+export async function createReviewComment(reviewId, content) {
+  const res = await api.post(`/reviews/${reviewId}/comments/create/`, { content }, authConfig())
+  return res.data
+}
+
+// [추가] 보고싶어요 토글 (리뷰가 없으면 watched=False로 생성, 있으면 삭제)
+// 이 기능은 로직이 복잡해서 뷰 파일 내부에서 처리하거나, 백엔드에 전용 API를 만드는 게 좋지만
+// 지금은 프론트에서 create/delete를 호출하는 방식으로 구현하겠습니다.
+
+
+
+// [추가] 보고싶어요 토글
+export function toggleMovieWish(tmdbId) {
+  return api.post(`/reviews/movies/${tmdbId}/wish/`)
+    .then(res => res.data)
+}
+

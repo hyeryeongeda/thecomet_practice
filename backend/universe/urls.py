@@ -14,7 +14,7 @@ urlpatterns = [
 ]
 
 
-# 마이페이지 
+# 마이페이지    
 # [추가] DEBUG 모드일 때 미디어 파일 서빙
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -9,7 +9,7 @@ from django.db.models import Q
 
 from rest_framework.permissions import IsAuthenticated # 마이페이지 
 
-from .models import Movie, Genre, Person, HomeSectionEntry, MovieCredit, PersonLike, GenreLike # 마이페이지 
+from .models import Movie, Genre, Person, HomeSectionEntry, MovieCredit, PersonLike, GenreLike, MovieLike # 마이페이지  # 영화상세 
 from .serializers import (
     MovieListSerializer,
     MovieDetailSerializer,
@@ -249,7 +249,14 @@ def search(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def my_likes_list(request):
+    """
+    마이페이지: 내가 좋아요한 인물/장르/영화 가져오기
+    GET /api/movies/likes/?type=movie  -> 내가 좋아요한 영화
+    GET /api/movies/likes/?type=person -> 내가 좋아요한 인물
+    """
+    
     like_type = request.query_params.get("type", "person")
+    user = request.user
     
     if like_type == "person":
         likes = PersonLike.objects.filter(user=request.user).select_related("person")
@@ -260,6 +267,12 @@ def my_likes_list(request):
         likes = GenreLike.objects.filter(user=request.user).select_related("genre")
         genres = [l.genre for l in likes]
         return Response(GenreSerializer(genres, many=True).data)
+    
+    elif like_type == "movie": # [추가됨] 영화 좋아요 목록
+        likes = MovieLike.objects.filter(user=request.user).select_related("movie")
+        movies = [l.movie for l in likes]
+        return Response(MovieListSerializer(movies, many=True).data)
+    
         
     return Response([])
 
@@ -276,3 +289,56 @@ def my_movie_likes(request):
     # 아직 좋아요 모델이 구체화되지 않았다면 일단 빈 배열을 반환하여 404를 해결합니다.
     # 나중에 관련 모델(GenreLike 등)을 만드시면 필터링 로직을 넣으세요.
     return Response([])
+
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def movie_similar(request, tmdb_id: int):
+    """
+    [비슷한 작품 추천 로직]
+    1. 해당 영화의 장르들을 가져옵니다.
+    2. 그 장르를 포함하는 다른 영화들을 찾습니다.
+    3. 겹치는 장르가 많은 순서 + 인기도 순으로 정렬하여 20개를 뽑습니다.
+    """
+    movie = get_object_or_404(Movie, tmdb_id=tmdb_id)
+    movie_genres = movie.genres.all()
+
+    if not movie_genres.exists():
+        # 장르 정보가 없으면 그냥 인기 영화 반환
+        similar_movies = Movie.objects.exclude(id=movie.id).order_by("-popularity")[:20]
+    else:
+        # 같은 장르를 가진 영화들 찾기 (현재 영화 제외)
+        similar_movies = (
+            Movie.objects.filter(genres__in=movie_genres)
+            .exclude(id=movie.id)
+            .annotate(same_genres=Count("genres")) # 겹치는 장르 개수 세기
+            .order_by("-same_genres", "-popularity") # 많이 겹치고 + 인기 많은 순
+            .distinct()[:20]
+        )
+
+    return Response(MovieListSerializer(similar_movies, many=True).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def movie_like_toggle(request, tmdb_id: int):
+    """
+    영화 좋아요 토글 (눌렀다 뗐다)
+    """
+    movie = get_object_or_404(Movie, tmdb_id=tmdb_id)
+    user = request.user
+
+    # 이미 좋아요 했으면 취소
+    like_obj = MovieLike.objects.filter(user=user, movie=movie).first()
+    
+    if like_obj:
+        like_obj.delete()
+        liked = False
+    else:
+        MovieLike.objects.create(user=user, movie=movie)
+        liked = True
+    
+    return Response({"liked": liked, "tmdb_id": tmdb_id})
+
+

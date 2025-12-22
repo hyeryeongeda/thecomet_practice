@@ -94,6 +94,7 @@ class RecentReviewSerializer(serializers.ModelSerializer):
             "like_count",
             "is_liked",
             "created_at",
+            "comments_count",
         ]
 
     def get_like_count(self, obj):
@@ -106,3 +107,4 @@ class RecentReviewSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             return False
         return obj.likes.filter(id=request.user.id).exists()
+    

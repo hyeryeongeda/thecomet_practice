@@ -38,3 +38,21 @@ class Review(models.Model):
     @property
     def like_count(self):
         return self.likes.count()
+# backend/reviews/models.py
+
+# ... (기존 Review 모델 코드 아래에 추가)
+
+class ReviewComment(models.Model):
+    """
+    리뷰에 달리는 댓글 (대댓글)
+    - review: 어떤 리뷰에 달린 댓글인지
+    - user: 누가 썼는지
+    - content: 내용
+    """
+    review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="comments")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Reply by {self.user} on Review {self.review.id}"

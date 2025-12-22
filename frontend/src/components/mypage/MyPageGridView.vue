@@ -66,7 +66,7 @@ const currentSort = ref('latest')
 const pageTitle = computed(() => {
   const titles = {
     watched: '봤던 영화',
-    wish: '보고싶은 영화',
+    wish: '좋아요 한 영화',
     commented: '코멘트 작성한 영화',
     liked_people: '좋아요한 인물',
     liked_reviews: '좋아요한 코멘트'

@@ -101,23 +101,98 @@ async function handleSave() {
 </script>
 
 <style scoped>
+/* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */
+
 .form { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
 .image-edit { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 15px; }
-.avatar-preview { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; border: 2px solid #f0f0f0; }
+
+.avatar-preview { 
+  width: 90px; height: 90px; 
+  border-radius: 50%; overflow: hidden; 
+  border: 2px solid var(--border); /* #f0f0f0 -> var(--border) */
+  background: var(--bg);
+}
 .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
-.btn-sub { font-size: 12px; padding: 4px 8px; cursor: pointer; background: #eee; border: 1px solid #ddd; border-radius: 4px; }
 
-.label { font-size: 13px; font-weight: 800; color: #666; margin-top: 5px; }
-.input { padding: 10px; border-radius: 8px; border: 1px solid #ddd; }
-.input.readonly { background: #f9f9f9; color: #999; outline: none; }
+.btn-sub { 
+  font-size: 12px; padding: 4px 8px; cursor: pointer; 
+  background: var(--bg); /* #eee -> var(--bg) */
+  border: 1px solid var(--border); /* #ddd -> var(--border) */
+  border-radius: 4px; 
+  color: var(--text);
+  transition: background 0.2s;
+}
+.btn-sub:hover {
+  background: var(--primary-weak);
+}
 
-.divider { margin: 15px 0; border: 0; border-top: 1px solid #eee; }
-.sub-title { font-size: 14px; font-weight: 900; margin-bottom: 5px; }
+.label { 
+  font-size: 13px; font-weight: 800; 
+  color: var(--muted); /* #666 -> var(--muted) */
+  margin-top: 5px; 
+}
+
+.input { 
+  padding: 10px; border-radius: 8px; 
+  border: 1px solid var(--border); /* #ddd -> var(--border) */
+  background: var(--input-bg);    /* 배경 대응 */
+  color: var(--text);             /* 글자색 대응 */
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input:focus {
+  border-color: var(--primary);
+}
+
+/* 읽기 전용 상태 (아이디 등) */
+.input.readonly { 
+  background: var(--primary-weak); /* #f9f9f9 -> var(--primary-weak) */
+  color: var(--muted);            /* #999 -> var(--muted) */
+  border-color: var(--border);
+  opacity: 0.7;
+  outline: none; 
+}
+
+.divider { 
+  margin: 15px 0; border: 0; 
+  border-top: 1px solid var(--border); /* #eee -> var(--border) */
+}
+
+.sub-title { 
+  font-size: 14px; font-weight: 900; margin-bottom: 5px; 
+  color: var(--text);
+}
 
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-.btn { padding: 10px 20px; border-radius: 8px; font-weight: 800; cursor: pointer; border: 1px solid #111; }
-.btn.ghost { background: #fff; color: #111; }
-.btn:not(.ghost) { background: #111; color: #fff; }
 
-.err-msg { color: #ff4d4f; font-size: 12px; text-align: center; margin-top: 10px; font-weight: 700; }
+.btn { 
+  padding: 10px 20px; border-radius: 8px; font-weight: 800; cursor: pointer; 
+  border: 1px solid var(--primary); /* #111 -> var(--primary) */
+  transition: all 0.2s;
+}
+
+/* 취소 버튼 스타일 */
+.btn.ghost { 
+  background: var(--card); /* #fff -> var(--card) */
+  color: var(--text);      /* #111 -> var(--text) */
+  border-color: var(--border);
+}
+.btn.ghost:hover {
+  background: var(--bg);
+}
+
+/* 저장 버튼 스타일 */
+.btn:not(.ghost) { 
+  background: var(--primary); /* #111 -> var(--primary) */
+  color: #ffffff;             /* 버튼 위 글자는 흰색 고정 */
+}
+.btn:not(.ghost):hover {
+  filter: brightness(1.1);
+  box-shadow: var(--shadow);
+}
+
+.err-msg { 
+  color: #ff4d4f; /* 에러 색상은 유지하되 테마별 가독성 확인 */
+  font-size: 12px; text-align: center; margin-top: 10px; font-weight: 700; 
+}
 </style>

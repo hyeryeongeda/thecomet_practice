@@ -4,10 +4,8 @@ import { useAuthStore } from '@/stores/auth'
 
 export const useThemeStore = defineStore('theme', {
   state: () => ({
-    // ✅ 지원하는 모든 테마 이름을 리스트로 관리합니다.
-    themes: ['blackred', 'blue', 'midnight', 'purple', 'forest', 'sunset'],
-    // ✅ 문법 오류 수정 및 기본값 설정
-    theme: localStorage.getItem('theme') || 'blackred'
+    themes: ['light', 'blackred', 'blue', 'midnight', 'purple', 'forest', 'sunset'],
+    theme: localStorage.getItem('theme') || 'light' // 기본값을 light로 설정 가능
   }),
 
   actions: {

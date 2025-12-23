@@ -39,6 +39,8 @@ function scrollRight() {
 </script>
 
 <style scoped>
+/* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */
+
 .row {
   margin: 26px 0;
 }
@@ -54,7 +56,7 @@ function scrollRight() {
   margin: 0;
   font-size: 18px;
   font-weight: 800;
-  color: #111;
+  color: var(--text); /* #111 -> var(--text) */
 }
 
 .actions {
@@ -71,35 +73,41 @@ function scrollRight() {
   cursor: pointer;
   font-size: 18px;
   color: var(--text);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
+/* ✅ 중복 코드를 정리하고 호버 효과 유지 */
 .nav-btn:hover:not(:disabled) {
   background: var(--primary);     
   border-color: var(--primary);
-  color: #ffffff;                  
+  color: #ffffff;                  /* 호버 시 화살표는 흰색 고정 */
   transform: scale(1.1);           
 }
 
-.nav-btn:hover:not(:disabled) {
-  background: var(--primary);     
-  border-color: var(--primary);
-  color: #ffffff;                  
-  transform: scale(1.1);         
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
-.sec-title { margin: 0; font-size: 18px; font-weight: 900; color: var(--text); }
+/* 더보기 버튼 스타일 */
 .more { 
   border: none; 
   background: transparent; 
   cursor: pointer; 
   color: var(--muted); 
   font-weight: 900; 
+  font-size: 13px;
+  transition: color 0.2s;
 }
 .more:hover { 
   text-decoration: underline; 
   color: var(--primary); 
 }
 
+/* 영화들이 지나가는 레일 */
 .rail {
   display: flex;
   gap: 14px;
@@ -108,11 +116,15 @@ function scrollRight() {
   scroll-behavior: smooth;
 }
 
+/* ✅ 스크롤바 테마 대응 */
 .rail::-webkit-scrollbar {
-  height: 8px;
+  height: 6px; /* 높이 살짝 최적화 */
 }
 .rail::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.12);
+  background: var(--border); /* rgba(0,0,0,0.12) -> var(--border) */
   border-radius: 999px;
+}
+.rail::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }
 </style>

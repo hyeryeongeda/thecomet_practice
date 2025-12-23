@@ -39,10 +39,17 @@ function goDetail() {
 </script>
 
 <style scoped>
+/* 🎨 레이아웃 구조(160px)는 유지하고 색상만 테마 변수로 교체 */
+
 .card {
   width: 160px;
   cursor: pointer;
   user-select: none;
+  transition: transform 0.2s ease; /* 호버 시 부드러운 움직임 추가 */
+}
+
+.card:hover {
+  transform: translateY(-5px); /* 살짝 떠오르는 효과 */
 }
 
 .poster-wrap {
@@ -50,8 +57,10 @@ function goDetail() {
   height: 240px;
   border-radius: 12px;
   overflow: hidden;
-  background: #f2f2f2;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+  background: var(--bg); /* #f2f2f2 -> var(--bg) */
+  box-shadow: var(--shadow); /* 고정값 -> var(--shadow) */
+  border: 1px solid var(--border); /* 다크 테마에서 경계 구분을 위해 추가 */
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 .poster {
@@ -65,29 +74,38 @@ function goDetail() {
   height: 100%;
   display: grid;
   place-items: center;
-  color: #777;
+  color: var(--muted); /* #777 -> var(--muted) */
   font-size: 12px;
+  background: var(--input-bg); /* 폴백 배경도 테마 대응 */
 }
 
 .meta {
-  margin-top: 8px;
+  margin-top: 10px; /* 여백 살짝 조정 */
 }
 
 .title {
   font-size: 13px;
   font-weight: 700;
   margin: 0;
-  line-height: 1.3;
-  color: #111;
+  line-height: 1.4;
+  color: var(--text); /* #111 -> var(--text) */
+  
+  /* 기존 2줄 말줄임표 유지 */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  transition: color 0.3s;
+}
+
+.card:hover .title {
+  color: var(--primary); /* 호버 시 제목에 테마 포인트 컬러 적용 */
 }
 
 .sub {
   margin: 4px 0 0;
   font-size: 12px;
-  color: #666;
+  color: var(--muted); /* #666 -> var(--muted) */
+  transition: color 0.3s;
 }
 </style>

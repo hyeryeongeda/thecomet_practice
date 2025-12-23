@@ -32,22 +32,57 @@ defineProps({
 // 부모에게 전달할 이벤트 정의
 defineEmits(['open-list-modal', 'open-detail-modal'])
 </script>
-
 <style scoped>
-.head-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.sub-title { font-size: 20px; font-weight: 800; color: #000; }
-.cnt { color: #ff2f6e; margin-left: 4px; }
-.more-link { font-size: 14px; color: #ff2f6e; cursor: pointer; font-weight: 700; }
-.no-data { color: #999; font-size: 14px; padding: 40px 0; text-align: center; }
+/* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */
 
-/* 홈 화면의 review-grid와 동일한 설정 */
+.head-row { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 20px; 
+}
+
+.sub-title { 
+  font-size: 20px; 
+  font-weight: 800; 
+  color: var(--text); /* #000 -> var(--text) */
+}
+
+.cnt { 
+  color: var(--primary); /* #ff2f6e -> var(--primary) 포인트 컬러 */
+  margin-left: 4px; 
+}
+
+.more-link { 
+  font-size: 14px; 
+  color: var(--primary); /* #ff2f6e -> var(--primary) 포인트 컬러 */
+  cursor: pointer; 
+  font-weight: 700; 
+  transition: opacity 0.2s;
+}
+
+.more-link:hover {
+  opacity: 0.7;
+  text-decoration: underline;
+}
+
+.no-data { 
+  color: var(--muted); /* #999 -> var(--muted) */
+  font-size: 14px; 
+  padding: 40px 0; 
+  text-align: center; 
+}
+
+/* 홈 화면의 review-grid와 동일한 레이아웃 유지 */
 .comment-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 상세페이지는 공간상 2열이 적당합니다 */
+  grid-template-columns: repeat(2, 1fr); /* 2열 구조 유지 */
   gap: 16px;
 }
 
 @media (max-width: 640px) {
-  .comment-grid { grid-template-columns: 1fr; }
+  .comment-grid { 
+    grid-template-columns: 1fr; /* 모바일 1열 유지 */
+  }
 }
 </style>

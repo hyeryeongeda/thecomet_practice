@@ -40,6 +40,7 @@
               <span class="arrow"> > </span>
               
               <div class="sub-dropdown">
+                <div class="dropdown-item" @click="changeTheme('light')">기본 (White)</div>
                 <div class="dropdown-item" @click="changeTheme('blackred')">Black Red</div>
                 <div class="dropdown-item" @click="changeTheme('blue')">Blue</div>
                 <div class="dropdown-item" @click="changeTheme('midnight')">Midnight Gold</div>
@@ -96,6 +97,7 @@ function changeTheme(themeName) {
 
 <style scoped>
 /* 네비게이션 컨테이너 */
+/* 네비게이션 컨테이너 - 전체 폰트 고정 */
 .nav-container {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -105,6 +107,38 @@ function changeTheme(themeName) {
   border-bottom: 1px solid var(--nav-border);
   z-index: 9999;
   transition: all 0.3s ease;
+
+  /* 🔥 폰트 스타일 고정 */
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif !important;
+  -webkit-font-smoothing: antialiased; /* 글자를 더 매끄럽게 */
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 브랜드 텍스트 고정 */
+.brand-text {
+  font-family: inherit; /* 부모인 nav-container의 폰트를 따름 */
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.03em; /* 자간을 살짝 좁혀서 고정된 느낌 부여 */
+}
+
+/* 메뉴 링크 고정 */
+.link {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* 검색창 및 드롭다운 텍스트 고정 */
+.search, .dropdown-item, .btn {
+  font-family: inherit;
+}
+
+/* 드롭다운 아이템 폰트 무게 고정 */
+.dropdown-item {
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .nav-inner {

@@ -44,17 +44,92 @@ defineEmits(['toggle-like', 'toggle-wish', 'open-write-modal'])
 </script>
 
 <style scoped>
-/* 관련 스타일 복사 (.rating-row, .action-row, .act-btn 등) */
-.rating-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0 20px; }
-.rating-stars { position: relative; font-size: 32px; color: #eee; line-height: 1; letter-spacing: -2px; }
-.star-bg { color: #e0e0e0; }
-.star-fill { position: absolute; top: 0; left: 0; color: #ffad1f; overflow: hidden; white-space: nowrap; }
-.score-num { font-size: 32px; font-weight: 700; color: #333; margin-right: 8px; }
-.score-label { font-size: 13px; color: #888; }
-.divider { height: 1px; background: #ededed; margin: 0; width: 100%; }
-.action-row { display: flex; gap: 40px; padding: 20px 0; }
-.act-btn { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; color: #292a32; }
-.act-btn.active { color: #ff2f6e; }
-.act-btn.active .svg-icon { fill: #ff2f6e; }
-.svg-icon { width: 24px; height: 24px; }
+/* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */
+
+.rating-row { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  padding: 10px 0 20px; 
+}
+
+/* 별점 컨테이너 */
+.rating-stars { 
+  position: relative; 
+  font-size: 32px; 
+  color: var(--border); /* #eee -> var(--border) (비활성 별 색상) */
+  line-height: 1; 
+  letter-spacing: -2px; 
+}
+
+.star-bg { 
+  color: var(--border); /* #e0e0e0 -> var(--border) */
+}
+
+.star-fill { 
+  position: absolute; 
+  top: 0; 
+  left: 0; 
+  color: #ffad1f; /* 별점 금색은 시각적 가독성을 위해 유지 */
+  overflow: hidden; 
+  white-space: nowrap; 
+}
+
+.score-num { 
+  font-size: 32px; 
+  font-weight: 700; 
+  color: var(--text); /* #333 -> var(--text) */
+  margin-right: 8px; 
+}
+
+.score-label { 
+  font-size: 13px; 
+  color: var(--muted); /* #888 -> var(--muted) */
+}
+
+.divider { 
+  height: 1px; 
+  background: var(--border); /* #ededed -> var(--border) */
+  margin: 0; 
+  width: 100%; 
+}
+
+/* 액션 바 (좋아요, 북마크 등) */
+.action-row { 
+  display: flex; 
+  gap: 40px; 
+  padding: 20px 0; 
+}
+
+.act-btn { 
+  background: transparent; 
+  border: none; 
+  cursor: pointer; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  gap: 6px; 
+  color: var(--text); /* #292a32 -> var(--text) */
+  transition: transform 0.2s, color 0.2s;
+}
+
+.act-btn:hover {
+  transform: scale(1.05);
+  color: var(--primary); /* 호버 시 테마 포인트 컬러 */
+}
+
+.act-btn.active { 
+  color: var(--primary); /* #ff2f6e -> var(--primary) */
+}
+
+.act-btn.active .svg-icon { 
+  fill: var(--primary); /* 아이콘 색상도 테마에 맞춰 변경 */
+}
+
+.svg-icon { 
+  width: 24px; 
+  height: 24px; 
+  fill: currentColor; /* 부모인 .act-btn의 color를 따르도록 설정 */
+  transition: fill 0.2s;
+}
 </style>

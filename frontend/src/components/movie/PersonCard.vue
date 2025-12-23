@@ -47,32 +47,108 @@ function onUnlike() {
 </script>
 
 <style scoped>
+/* 🎨 레이아웃 구조(120px)는 유지하고 색상만 테마 변수로 교체 */
+
 .card { 
-  width: 120px; cursor: pointer; user-select: none; 
-  position: relative; /* ✅ 하트 버튼 기준점 */
+  width: 120px; 
+  cursor: pointer; 
+  user-select: none; 
+  position: relative; /* ✅ 하트 버튼 기준점 유지 */
+  transition: transform 0.2s ease;
 }
 
-/* ✅ 하트 버튼 스타일 추가 */
+.card:hover {
+  transform: translateY(-4px);
+}
+
+/* ✅ 하트 버튼 테마 대응 */
 .heart-badge {
-  position: absolute; top: 6px; right: 6px; z-index: 5;
-  width: 26px; height: 26px;
-  background: rgba(255, 255, 255, 0.9); /* 살짝 투명한 흰색 배경 */
-  border: 1px solid #eee; border-radius: 50%;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  transition: transform 0.2s;
+  position: absolute; 
+  top: 6px; 
+  right: 6px; 
+  z-index: 5;
+  width: 26px; 
+  height: 26px;
+  /* ✅ 흰색 고정 대신 테마 카드 배경 사용 */
+  background: var(--card); 
+  border: 1px solid var(--border); 
+  border-radius: 50%;
+  cursor: pointer; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  box-shadow: var(--shadow);
+  transition: all 0.2s;
   padding: 0;
 }
-.heart-badge:hover { transform: scale(1.1); }
+
+.heart-badge:hover { 
+  transform: scale(1.2); 
+  border-color: var(--primary); /* 호버 시 포인트 컬러 테두리 */
+}
+
+/* 하트 아이콘 색상 (SVG나 폰트일 경우 대비) */
+.heart-badge svg, .heart-badge i {
+  color: var(--muted);
+  transition: color 0.2s;
+}
+
+/* 활성화된 하트 상태 (필요 시) */
+.heart-badge.active svg {
+  color: var(--primary);
+}
 
 .poster-wrap {
-  width: 120px; height: 180px; /* 2:3 비율 */
-  border-radius: 12px; overflow: hidden; background: #f2f2f2;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  width: 120px; 
+  height: 180px; /* 2:3 비율 유지 */
+  border-radius: 12px; 
+  overflow: hidden; 
+  background: var(--bg); /* #f2f2f2 -> var(--bg) */
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  transition: border-color 0.3s;
 }
-.poster { width: 100%; height: 100%; object-fit: cover; }
-.poster-fallback { width: 100%; height: 100%; display: grid; place-items: center; color: #777; font-size: 12px; }
-.meta { margin-top: 8px; text-align: center; }
-.name { font-size: 13px; font-weight: 700; margin: 0; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dept { font-size: 11px; color: var(--muted); margin: 2px 0 0; }
+
+.poster { 
+  width: 100%; 
+  height: 100%; 
+  object-fit: cover; 
+}
+
+.poster-fallback { 
+  width: 100%; 
+  height: 100%; 
+  display: grid; 
+  place-items: center; 
+  color: var(--muted); /* #777 -> var(--muted) */
+  font-size: 12px; 
+  background: var(--input-bg);
+}
+
+.meta { 
+  margin-top: 8px; 
+  text-align: center; 
+}
+
+.name { 
+  font-size: 13px; 
+  font-weight: 700; 
+  margin: 0; 
+  color: var(--text); 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  white-space: nowrap; 
+  transition: color 0.2s;
+}
+
+/* 카드 호버 시 이름 색상 강조 */
+.card:hover .name {
+  color: var(--primary);
+}
+
+.dept { 
+  font-size: 11px; 
+  color: var(--muted); 
+  margin: 2px 0 0; 
+}
 </style>

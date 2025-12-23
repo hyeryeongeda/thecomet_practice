@@ -12,9 +12,7 @@
         <h2 class="sec-title">지금 뜨는 인기 영화</h2>
         <button class="more" @click="goMovies('popular')">더보기</button>
       </div>
-      <p v-if="loading" class="muted">불러오는 중...</p>
-      <p v-else-if="popular.length === 0" class="muted">데이터가 없습니다.</p>
-      <MovieRow v-else title="인기 영화" :movies="popular" @click-movie="goDetail" />
+      <MovieRow v-if="!loading" title="인기 영화" :movies="popular" @click-movie="goDetail" />
     </section>
 
     <section class="sec">
@@ -36,7 +34,7 @@
     <section class="sec">
       <div class="sec-head">
         <h2 class="sec-title">최근 코멘트</h2>
-        <button class="more" @click="openListModal">더보기</button>
+        <button class="more" @click="go('/mypage')">더보기</button>
       </div>
       <p v-if="reviewsLoading" class="muted">불러오는 중...</p>
       
@@ -50,14 +48,6 @@
       </div>
     </section>
 
-    <HomeReviewListModal
-      v-if="showListModal"
-      :reviews="recentReviews"
-      @close="showListModal = false"
-      @sort="handleSort"
-      @select="openReviewModal"
-    />
-
     <ReviewDetailModal
       v-if="showDetailModal && selectedReview"
       :review="selectedReview"
@@ -66,7 +56,9 @@
       @close="closeDetailModal"
       @submit-reply="handleReplySubmit"
       @toggle-like="handleReviewLike"
-      @delete-reply="handleReplyDelete" 
+      @delete-reply="handleReplyDelete"
+      @delete-review="handleReviewDeleteLocal"
+      @update-review="handleReviewUpdateLocal"
     />
   </div>
 </template>
@@ -80,15 +72,12 @@ import {
   fetchRecentReviews, 
   fetchReviewComments, 
   createReviewComment, 
-  toggleReviewLike,
-  deleteReviewComment 
+  toggleReviewLike 
 } from '@/api/comet.js'
 
 import MovieRow from '@/components/movie/MovieRow.vue'
 import ReviewCard from '@/components/review/ReviewCard.vue'
 import ReviewDetailModal from '@/components/review/ReviewDetailModal.vue'
-// ✅ [추가] 새로 만든 리스트 모달 import
-import HomeReviewListModal from '@/components/review/HomeReviewListModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -102,7 +91,6 @@ const recentReviews = ref([])
 
 // 모달 상태
 const showDetailModal = ref(false)
-const showListModal = ref(false) // ✅ 리스트 모달 상태 추가
 const selectedReview = ref(null)
 const reviewComments = ref([])
 
@@ -121,8 +109,7 @@ async function loadHome() {
 async function loadRecentReviews() {
   reviewsLoading.value = true
   try {
-    // ✅ 더보기를 위해 좀 더 많이 가져오도록 설정 (20개)
-    const data = await fetchRecentReviews(20)
+    const data = await fetchRecentReviews(12)
     recentReviews.value = Array.isArray(data) ? data : (data?.results || [])
   } finally {
     reviewsLoading.value = false
@@ -146,53 +133,40 @@ function closeDetailModal() {
   selectedReview.value = null
 }
 
-// ✅ [추가] 리스트 모달 열기
-function openListModal() {
-  showListModal.value = true
+// 🔥 [삭제 반영] 리스트에서 리뷰 삭제 (새로고침 없이 반영)
+function handleReviewDeleteLocal(reviewId) {
+  recentReviews.value = recentReviews.value.filter(r => r.id !== reviewId)
+  closeDetailModal()
 }
 
-// ✅ [추가] 정렬 핸들러 (홈 화면용)
-function handleSort(sortType) {
-  if (sortType === 'likes') {
-    recentReviews.value.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0))
-  } else {
-    // 최신순
-    recentReviews.value.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+// 🔥 [수정 반영] 리스트에 수정 내용 덮어쓰기 (새로고침 없이 반영)
+function handleReviewUpdateLocal(updatedReview) {
+  // 리스트에서 찾아서 업데이트
+  const idx = recentReviews.value.findIndex(r => r.id === updatedReview.id)
+  if (idx !== -1) {
+    recentReviews.value[idx] = { ...recentReviews.value[idx], ...updatedReview }
+  }
+  
+  // 모달에 떠있는 데이터도 업데이트 (이게 없으면 모달 닫기 전까지 옛날 내용 보임)
+  if (selectedReview.value && selectedReview.value.id === updatedReview.id) {
+    selectedReview.value = { ...selectedReview.value, ...updatedReview }
   }
 }
 
 // [댓글 작성]
 async function handleReplySubmit(content) {
   if (!authStore.isLoggedIn) return alert('로그인 후 이용해주세요.')
-  
-  // 삭제 후 갱신 요청(null)인 경우 목록만 다시 불러옴
-  if (content === null) {
-    reviewComments.value = await fetchReviewComments(selectedReview.value.id)
-    return
-  }
-
   try {
     await createReviewComment(selectedReview.value.id, content)
     reviewComments.value = await fetchReviewComments(selectedReview.value.id)
-    
-    // ✅ [추가] 카드 UI의 댓글 개수 즉시 증가
-    if (selectedReview.value) {
-      selectedReview.value.comments_count = (selectedReview.value.comments_count || 0) + 1
-    }
   } catch (e) {
     alert('댓글 작성 실패')
   }
 }
 
-// ✅ [추가] 댓글 삭제 핸들러 (홈 화면 즉시 반영용)
+// [댓글 삭제]
 function handleReplyDelete(commentId) {
-  // 1. 모달 내부 리스트에서 제거
   reviewComments.value = reviewComments.value.filter(c => c.id !== commentId)
-
-  // 2. 홈 화면 카드의 댓글 개수 감소
-  if (selectedReview.value) {
-    selectedReview.value.comments_count = Math.max(0, (selectedReview.value.comments_count || 0) - 1)
-  }
 }
 
 // [좋아요 토글]
@@ -214,7 +188,6 @@ async function handleReviewLike(reviewId) {
   }
 }
 
-// 영화 상세페이지 이동 (포스터 클릭 등)
 function goDetail(movie) {
   const tmdbId = movie?.tmdb_id ?? movie?.id
   if (tmdbId) router.push(`/movies/${tmdbId}`)
@@ -235,70 +208,19 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */
-
-.page { 
-  max-width: 1100px; 
-  margin: 0 auto; 
-  padding: 20px 14px 60px; 
-  background: var(--bg); /* 배경색 대응 */
-  color: var(--text);    /* 글자색 대응 */
-}
-
+/* 기존 스타일 유지 */
+.page { max-width: 1100px; margin: 0 auto; padding: 20px 14px 60px; }
 .hero { padding: 26px 0 18px; }
-.hero-title { 
-  margin: 0; 
-  font-size: 44px; 
-  font-weight: 900; 
-  letter-spacing: -0.02em; 
-  color: var(--text); /* #111 -> var(--text) */
-}
-.hero-sub { 
-  margin: 10px 0 0; 
-  color: var(--muted); /* #666 -> var(--muted) */
-  font-weight: 700; 
-}
-
-.divider { 
-  border: none; 
-  border-top: 1px solid var(--border); /* #eee -> var(--border) */
-  margin: 18px 0 22px; 
-}
-
+.hero-title { margin: 0; font-size: 44px; font-weight: 900; letter-spacing: -0.02em; }
+.hero-sub { margin: 10px 0 0; color: #666; font-weight: 700; }
+.divider { border: none; border-top: 1px solid #eee; margin: 18px 0 22px; }
 .sec { margin-top: 18px; }
-.sec-head { 
-  display: flex; 
-  align-items: center; 
-  justify-content: space-between; 
-  gap: 10px; 
-  margin-bottom: 10px; 
-}
-.sec-title { 
-  margin: 0; 
-  font-size: 18px; 
-  font-weight: 900; 
-  color: var(--text); 
-}
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.sec-title { margin: 0; font-size: 18px; font-weight: 900; }
+.more { border: none; background: transparent; cursor: pointer; color: #666; font-weight: 900; }
+.more:hover { text-decoration: underline; }
+.muted { color: #777; margin: 10px 0 0; }
 
-.more { 
-  border: none; 
-  background: transparent; 
-  cursor: pointer; 
-  color: var(--muted); /* #666 -> var(--muted) */
-  font-weight: 900; 
-  transition: color 0.2s;
-}
-.more:hover { 
-  text-decoration: underline; 
-  color: var(--primary); /* 호버 시 테마별 포인트 컬러 적용 */
-}
-
-.muted { 
-  color: var(--muted); /* #777 -> var(--muted) */
-  margin: 10px 0 0; 
-}
-
-/* 리뷰 그리드 레이아웃 유지 */
 .review-grid {
   margin-top: 16px;
   display: grid;

@@ -7,11 +7,18 @@
           <div v-else class="u-icon">👤</div>
           <span class="u-name">{{ review.user.username }}</span>
         </div>
-        <button class="close-btn" @click="$emit('close')">✕</button>
+
+        <div class="header-right">
+          <div v-if="isMyReview" class="my-actions">
+            <button class="action-text" @click="openEditModal">수정</button>
+            <span class="divider-bar">|</span>
+            <button class="action-text" @click="onDeleteReview">삭제</button>
+          </div>
+          <button class="close-btn" @click="$emit('close')">✕</button>
+        </div>
       </div>
 
       <div class="modal-body">
-
         <div class="review-meta-row">
           <div class="small-poster" v-if="posterUrl" @click="goToMovieDetail">
             <img :src="posterUrl" alt="Poster">
@@ -81,11 +88,20 @@
           v-model="replyText"
           class="reply-input"
           placeholder="댓글을 작성해주세요..."
-          @keyup.enter="onSubmit"
+          @keyup.enter="onSubmitReply"
         />
-        <button class="submit-btn" :disabled="!replyText.trim()" @click="onSubmit">등록</button>
+        <button class="submit-btn" :disabled="!replyText.trim()" @click="onSubmitReply">등록</button>
       </div>
     </div>
+
+    <ReviewWriteModal 
+      v-if="isEditModalOpen"
+      :movieTitle="review.movie?.title || ''"
+      :existingReview="review"
+      @close="isEditModalOpen = false"
+      @submit="handleEditSubmit"
+      @delete="handleEditDelete" 
+    />
   </div>
 </template>
 
@@ -93,7 +109,8 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { deleteReviewComment } from '@/api/comet'
+import { deleteReviewComment, deleteReview, updateReview } from '@/api/comet'
+import ReviewWriteModal from '@/components/review/ReviewWriteModal.vue'
 
 const props = defineProps({
   review: { type: Object, required: true },
@@ -101,12 +118,20 @@ const props = defineProps({
   movie: { type: Object, default: null }
 })
 
-// ✅ delete-reply 이벤트만 추가 (기존 건드리지 않음)
-const emit = defineEmits(['close', 'submit-reply', 'toggle-like', 'delete-reply'])
+// 부모에게 보낼 이벤트 정의 (이게 있어야 새로고침 없이 반영됨)
+const emit = defineEmits([
+  'close', 
+  'submit-reply', 
+  'toggle-like', 
+  'delete-reply', 
+  'delete-review', 
+  'update-review'
+])
 
 const router = useRouter()
 const authStore = useAuthStore()
 const replyText = ref('')
+const isEditModalOpen = ref(false)
 
 const posterUrl = computed(() => {
   const m = props.review.movie || props.movie
@@ -114,7 +139,13 @@ const posterUrl = computed(() => {
   return null
 })
 
-function onSubmit() {
+const isMyReview = computed(() => {
+  if (!authStore.isLoggedIn || !props.review.user) return false
+  return authStore.user?.id === props.review.user.id
+})
+
+/* --- 댓글 관련 --- */
+function onSubmitReply() {
   if (replyText.value.trim()) {
     emit('submit-reply', replyText.value)
     replyText.value = ''
@@ -125,13 +156,64 @@ async function onDeleteReply(commentId) {
   if (!confirm('댓글을 삭제하시겠습니까?')) return
   try {
     await deleteReviewComment(commentId)
-    // ✅ 여기 핵심: 부모에게 "이 id 지웠다" 알려서 즉시 화면에서 제거
     emit('delete-reply', commentId)
   } catch (e) {
+    alert('댓글 삭제 실패')
+  }
+}
+
+/* --- ✅ 리뷰 삭제 (정상 작동 중) --- */
+async function onDeleteReview() {
+  if (!confirm('정말 이 리뷰를 삭제하시겠습니까?')) return
+  try {
+    await deleteReview(props.review.id)
+    emit('delete-review', props.review.id)
+    emit('close')
+  } catch (e) {
+    console.error(e)
     alert('삭제 실패')
   }
 }
 
+/* --- ✅ 리뷰 수정 (400 에러 해결을 위한 수정) --- */
+function openEditModal() {
+  isEditModalOpen.value = true
+}
+
+async function handleEditSubmit(payload) {
+  try {
+    // 🔥 [핵심] 400 에러 해결: movie ID를 반드시 포함해야 합니다!
+    // 백엔드가 PUT 요청 시 영화 정보 연결을 확인하려 하기 때문입니다.
+    const updateData = {
+      content: payload.content,
+      rating: payload.rating,
+      watched: props.review.watched ?? true, // 혹시 모르니 이것도 포함
+      movie: props.review.movie.id // ✅ 영화 ID 추가 (필수)
+    }
+    
+    // API 호출
+    const updated = await updateReview(props.review.id, updateData)
+    
+    // 부모에게 알려서 화면 즉시 갱신
+    emit('update-review', updated)
+    isEditModalOpen.value = false
+    alert('수정되었습니다.')
+  } catch (e) {
+    console.error('리뷰 수정 에러:', e)
+    // 에러 내용을 구체적으로 확인 (디버깅용)
+    if (e.response && e.response.data) {
+        console.log('서버 에러 메시지:', e.response.data)
+    }
+    alert('수정에 실패했습니다.')
+  }
+}
+
+function handleEditDelete() {
+  onDeleteReview()
+  isEditModalOpen.value = false
+}
+
+/* --- 이동/유틸 함수 --- */
 function goToMovieDetail() {
   const m = props.review.movie || props.movie
   if (m) {
@@ -139,161 +221,72 @@ function goToMovieDetail() {
     emit('close')
   }
 }
+
 function goToUserProfile() {
   const username = props.review?.user?.username
   if (!username) return
-  router.push(`/users/${username}`) // ✅ username으로 이동
-
-
-  emit('close') // 모달 닫고 이동 (원치 않으면 이 줄만 제거)
+  router.push(`/users/${username}`)
+  emit('close')
 }
-
-
-
-
 
 function formatDate(dateString) {
   if (!dateString) return ''
   const d = new Date(dateString)
   return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`
 }
-
-
-
-
 </script>
 
 <style scoped>
-/* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */
+/* 기존 스타일 + 헤더 버튼 스타일 */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.modal-card { width: 600px; height: 700px; background: var(--card); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border); }
 
-.modal-overlay {
-  position: fixed; inset: 0; 
-  background: rgba(0, 0, 0, 0.7); /* 오버레이는 가독성을 위해 어둡게 유지 */
-  z-index: 9999;
-  display: flex; align-items: center; justify-content: center;
-  backdrop-filter: blur(4px); /* 배경 흐림으로 몰입감 유도 */
-}
-
-.modal-card {
-  width: 600px; height: 700px; 
-  background: var(--card); /* white -> var(--card) */
-  border-radius: 12px;
-  display: flex; flex-direction: column; overflow: hidden;
-  box-shadow: var(--shadow); /* rgba -> var(--shadow) */
-  border: 1px solid var(--border); /* 다크모드 경계선 확보 */
-}
-
-/* 1. 헤더 */
-.modal-header {
-  height: 60px; padding: 0 20px; 
-  border-bottom: 1px solid var(--border); /* #eee -> var(--border) */
-  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
-  background: var(--card);
-}
+.modal-header { height: 60px; padding: 0 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; background: var(--card); }
 .user-profile { display: flex; align-items: center; gap: 10px; }
 .user-profile.clickable { cursor: pointer; }
-.user-profile.clickable:hover .u-name { text-decoration: underline; color: var(--primary); }
-
 .u-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); }
-.u-icon { font-size: 28px; color: var(--muted); } /* #ccc -> var(--muted) */
-.u-name { font-weight: 700; font-size: 15px; color: var(--text); } /* #333 -> var(--text) */
-.close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted); }
+.u-icon { font-size: 28px; color: var(--muted); }
+.u-name { font-weight: 700; font-size: 15px; color: var(--text); }
 
-/* 2. 본문 */
-.modal-body { 
-  flex: 1; overflow-y: auto; padding: 20px; 
-  background: var(--card); /* 배경 통일 */
-}
+.header-right { display: flex; align-items: center; gap: 16px; }
+.my-actions { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.action-text { background: none; border: none; cursor: pointer; color: var(--muted); padding: 0; font-size: 13px; transition: color 0.2s; }
+.action-text:hover { color: var(--primary); text-decoration: underline; }
+.divider-bar { color: var(--border); font-size: 10px; }
+.close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted); padding: 0; line-height: 1; }
 
-/* 메타 정보 */
+.modal-body { flex: 1; overflow-y: auto; padding: 20px; background: var(--card); }
 .review-meta-row { display: flex; gap: 16px; margin-bottom: 16px; }
-.small-poster {
-  width: 60px; height: 90px; border-radius: 4px; overflow: hidden;
-  flex-shrink: 0; cursor: pointer; 
-  background: var(--bg); /* #eee -> var(--bg) */
-  border: 1px solid var(--border);
-}
+.small-poster { width: 60px; height: 90px; border-radius: 4px; overflow: hidden; flex-shrink: 0; cursor: pointer; background: var(--bg); border: 1px solid var(--border); }
 .small-poster img { width: 100%; height: 100%; object-fit: cover; }
 .meta-info { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
 .movie-title { font-weight: 700; font-size: 16px; color: var(--text); cursor: pointer; }
-.movie-title:hover { text-decoration: underline; color: var(--primary); }
 .rating-date { font-size: 13px; color: var(--muted); display: flex; gap: 8px; }
-.star { color: #ffad1f; font-weight: 700; } /* 별점 금색은 유지 */
+.star { color: #ffad1f; font-weight: 700; }
+.review-content { font-size: 15px; line-height: 1.6; color: var(--text); margin-bottom: 20px; white-space: pre-wrap; }
 
-/* 리뷰 텍스트 */
-.review-content {
-  font-size: 15px; line-height: 1.6; 
-  color: var(--text); /* #333 -> var(--text) */
-  margin-bottom: 20px; white-space: pre-wrap;
-}
-
-/* 액션 바 */
-.action-bar {
-  display: flex; gap: 16px; align-items: center; padding-bottom: 16px;
-}
-.action-btn, .action-item {
-  display: flex; align-items: center; gap: 6px; font-size: 13px; 
-  color: var(--muted); /* #777 -> var(--muted) */
-  background: none; border: none; padding: 0; cursor: pointer;
-  transition: color 0.2s;
-}
-.action-item { cursor: default; }
+.action-bar { display: flex; gap: 16px; align-items: center; padding-bottom: 16px; }
+.action-btn, .action-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); background: none; border: none; padding: 0; cursor: pointer; }
 .action-btn:hover { color: var(--text); }
-.action-btn.active { color: var(--primary); font-weight: 700; } /* #ff2f6e -> var(--primary) */
+.action-btn.active { color: var(--primary); font-weight: 700; }
 
-.divider { height: 1px; background: var(--border); margin-bottom: 16px; } /* #f0f0f0 -> var(--border) */
-
-/* 대댓글 리스트 */
+.divider { height: 1px; background: var(--border); margin-bottom: 16px; }
 .replies-list { display: flex; flex-direction: column; gap: 16px; }
 .no-replies { text-align: center; color: var(--muted); padding: 20px 0; font-size: 13px; }
-.reply-item { 
-  background: var(--bg); /* #f9f9f9 -> var(--bg) 카드 위 또 다른 배경층 */
-  padding: 12px; border-radius: 8px; 
-  border: 1px solid var(--border);
-}
+.reply-item { background: var(--bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
 .r-head { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px; }
-.r-user { font-weight: 700; color: var(--text); } /* #444 -> var(--text) */
+.r-user { font-weight: 700; color: var(--text); }
 .r-right { display: flex; align-items: center; gap: 8px; }
 .r-date { color: var(--muted); }
 .del-reply-btn { font-size: 11px; color: var(--muted); border: none; background: none; cursor: pointer; text-decoration: underline; padding: 0; }
 .del-reply-btn:hover { color: var(--primary); }
 .r-body { font-size: 14px; color: var(--text); line-height: 1.4; }
 
-/* 3. 하단 푸터 (입력창) */
-.modal-footer {
-  height: 70px; padding: 0 20px; 
-  border-top: 1px solid var(--border); /* #eee -> var(--border) */
-  display: flex; align-items: center; gap: 10px; 
-  background: var(--card); /* #fff -> var(--card) */
-  flex-shrink: 0;
-}
-.reply-input {
-  flex: 1; padding: 12px 16px; 
-  border: 1px solid var(--border); /* #ddd -> var(--border) */
-  background: var(--input-bg); /* #f8f8f8 -> var(--input-bg) */
-  color: var(--text);
-  border-radius: 99px;
-  outline: none; font-size: 14px;
-  transition: all 0.2s;
-}
-.reply-input:focus { 
-  background: var(--card); 
-  border-color: var(--primary); /* #bbb -> var(--primary) */
-  box-shadow: 0 0 0 2px var(--primary-weak);
-}
-.submit-btn {
-  background: var(--border); /* #e0e0e0 -> var(--border) */
-  color: var(--muted); /* #777 -> var(--muted) */
-  border: none; padding: 10px 20px;
-  border-radius: 99px; font-weight: 700; cursor: default; transition: all 0.2s;
-}
-.submit-btn:not(:disabled) { 
-  background: var(--primary); /* #ff2f6e -> var(--primary) */
-  color: white; cursor: pointer; 
-}
-.submit-btn:not(:disabled):hover { opacity: 0.9; transform: scale(1.05); }
+.modal-footer { height: 70px; padding: 0 20px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: var(--card); flex-shrink: 0; }
+.reply-input { flex: 1; padding: 12px 16px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); border-radius: 99px; outline: none; font-size: 14px; }
+.reply-input:focus { background: var(--card); border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-weak); }
+.submit-btn { background: var(--border); color: var(--muted); border: none; padding: 10px 20px; border-radius: 99px; font-weight: 700; cursor: default; }
+.submit-btn:not(:disabled) { background: var(--primary); color: white; cursor: pointer; }
 
-@media (max-width: 600px) {
-  .modal-card { width: 95%; height: 80vh; }
-}
+@media (max-width: 600px) { .modal-card { width: 95%; height: 80vh; } }
 </style>

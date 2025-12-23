@@ -1,85 +1,141 @@
 <template>
-  <div class="panel">
-    <div class="chat-box" ref="chatWindow">
-      <div v-for="(m, idx) in chatMessages" :key="idx" class="msg" :class="m.role">
-        <span class="bubble">{{ m.content }}</span>
-      </div>
-      <div v-if="chatLoading" class="msg assistant">
-        <span class="bubble">추천 영화를 분석하고 있습니다... 🎬</span>
-      </div>
-    </div>
-
-    <form class="input-row" @submit.prevent="sendChat">
-      <input
-        v-model="chatInput"
-        class="input"
-        placeholder="예) 겨울에 어울리는 따뜻한 로맨스 영화 추천해줘"
-        :disabled="chatLoading"
-      />
-      <button class="btn" type="submit" :disabled="chatLoading || !chatInput.trim()">
-        보내기
-      </button>
-    </form>
-
-    <div v-if="chatMovies.length > 0" class="movie-section">
-      <h3 class="result-title">AI 맞춤 추천 목록</h3>
-      <div class="movie-grid">
-        <button
-          v-for="m in chatMovies"
-          :key="m.tmdb_id"
-          class="movie-card"
-          type="button"
-          @click="goMovie(m.tmdb_id)"
-        >
-          <div class="thumb">
-            <img v-if="m.poster_path" :src="posterUrl(m.poster_path)" alt="poster" />
-            <div v-else class="noimg">No Image</div>
-          </div>
-          <div class="mmeta">
-            <p class="mtitle">{{ m.title }}</p>
-            <p class="msub">★ {{ Number(m.vote_average || 0).toFixed(1) }}</p>
-          </div>
+  <div class="ai-recommend-layout">
+    <aside class="chat-sidebar">
+      <div class="sidebar-top">
+        <h2 class="sidebar-title">채팅 목록</h2>
+        <button class="new-chat-btn" @click="createNewChat" title="새로운 대화 시작">
+          + 새 채팅
         </button>
       </div>
-    </div>
-    
-    <div v-else-if="!chatLoading && chatMessages.length > 1" class="empty-movies">
-      해당하는 추천 영화 데이터를 찾을 수 없습니다. 다시 질문해 보세요!
+      
+      <div class="chat-history-list">
+        <div 
+          v-for="(chat, idx) in allChats" 
+          :key="chat.id" 
+          class="history-item" 
+          :class="{ active: currentChatIndex === idx }"
+          @click="selectChat(idx)"
+        >
+          <p class="history-text">{{ chat.title || '새로운 대화' }}</p>
+          <button class="delete-chat" @click.stop="deleteChat(idx)">×</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main-panel">
+      <section class="input-section">
+        <div class="input-container">
+          <textarea 
+            v-model="chatInput" 
+            placeholder="오늘 어떤 영화를 보고 싶으세요?&#10;(예 : 비도 오고 꿀꿀한데 위로가 되는 따뜻한 영화 추천해줘)"
+            @keypress.enter.prevent="sendChat"
+            :disabled="chatLoading"
+          ></textarea>
+          <button class="send-btn" @click="sendChat" :disabled="chatLoading || !chatInput.trim()">
+            보내기
+          </button>
+        </div>
+
+        <div class="quick-tags">
+          <button v-for="tag in ['비 오는 날 감성', '코믹', '설레는 로맨스']" :key="tag" @click="chatInput = tag" class="tag-btn">
+            {{ tag }}
+          </button>
+        </div>
+      </section>
+
+      <div class="chat-display" ref="chatWindow">
+        <div v-for="(m, idx) in currentChat.messages" :key="idx" :class="['msg-row', m.role]">
+          <div v-if="m.role === 'assistant'" class="bot-icon">🤖</div>
+          <div class="bubble">{{ m.content }}</div>
+        </div>
+
+        <div v-if="chatLoading" class="msg-row assistant">
+          <div class="bot-icon">🤖</div>
+          <div class="bubble loading">영화 3편을 엄선하고 있습니다... 🎬</div>
+        </div>
+
+        <div v-if="currentChat.movies && currentChat.movies.length > 0" class="movie-results">
+          <div 
+            v-for="movie in currentChat.movies" 
+            :key="movie.tmdb_id" 
+            class="horizontal-card" 
+            @click="goMovie(movie.tmdb_id)"
+          >
+            <div class="poster-box">
+              <img :src="posterUrl(movie.poster_path)" alt="poster">
+            </div>
+            <div class="info-box">
+              <div class="info-top">
+                <h4 class="m-title">{{ movie.title }}</h4>
+                <div class="stars">⭐ {{ Number(movie.vote_average).toFixed(1) }}</div>
+              </div>
+              <div class="ai-reason-box">
+                <div class="check-icon">✓</div>
+                <div class="reason-content">
+                  <span class="reason-label">AI 추천 내용</span>
+                  <p class="reason-text">{{ movie.ai_reason || '당신의 취향에 딱 맞는 영화입니다.' }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { postTasteChat } from '@/api/comet'
 
 const router = useRouter()
 const chatWindow = ref(null)
 
-const chatMessages = ref([
-  { role: 'assistant', content: '안녕하세요! 어떤 스타일의 영화를 찾으시나요? 분위기나 장르를 말씀해주세요.' },
-])
+const allChats = ref([])
+const currentChatIndex = ref(0)
 const chatInput = ref('')
 const chatLoading = ref(false)
-const chatMovies = ref([])
 
-// 포스터 URL 처리 (이미 전체 경로인 경우와 아닌 경우 구분)
-function posterUrl(path) {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  return `https://image.tmdb.org/t/p/w342${path}`
+const currentChat = computed(() => {
+  return allChats.value[currentChatIndex.value] || { messages: [], movies: [], title: '' }
+})
+
+onMounted(() => {
+  const savedData = localStorage.getItem('comet_ai_history')
+  if (savedData) {
+    allChats.value = JSON.parse(savedData)
+  } else {
+    createNewChat()
+  }
+})
+
+watch(allChats, (newVal) => {
+  localStorage.setItem('comet_ai_history', JSON.stringify(newVal))
+}, { deep: true })
+
+function createNewChat() {
+  const newChat = {
+    id: Date.now(),
+    title: '',
+    messages: [{ role: 'assistant', content: '안녕하세요! 취향에 딱 맞는 영화 3가지를 추천해 드릴게요.' }],
+    movies: []
+  }
+  allChats.value.unshift(newChat)
+  currentChatIndex.value = 0
+  chatInput.value = ''
 }
 
-function goMovie(tmdbId) {
-  router.push({ name: 'movie-detail', params: { tmdbId } })
+function selectChat(idx) {
+  currentChatIndex.value = idx
+  scrollToBottom()
 }
 
-// 스크롤을 가장 아래로 내리는 함수
-const scrollToBottom = async () => {
-  await nextTick()
-  if (chatWindow.value) {
-    chatWindow.value.scrollTop = chatWindow.value.scrollHeight
+function deleteChat(idx) {
+  if (confirm('이 대화 내역을 삭제하시겠습니까?')) {
+    allChats.value.splice(idx, 1)
+    if (allChats.value.length === 0) createNewChat()
+    else currentChatIndex.value = 0
   }
 }
 
@@ -87,149 +143,97 @@ async function sendChat() {
   const text = chatInput.value.trim()
   if (!text || chatLoading.value) return
 
-  // 1. 유저 메시지 추가 및 화면 갱신
-  chatMessages.value.push({ role: 'user', content: text })
+  const target = allChats.value[currentChatIndex.value]
+  if (!target.title) target.title = text.substring(0, 10) + (text.length > 10 ? '...' : '')
+
+  target.messages.push({ role: 'user', content: text })
   chatInput.value = ''
   chatLoading.value = true
   await scrollToBottom()
 
   try {
-    // 2. 대화 기록 정리 (API 전송용)
-    const history = chatMessages.value.map((m) => ({ role: m.role, content: m.content }))
-    
-    // 3. API 호출
+    const history = target.messages.map(m => ({ role: m.role, content: m.content }))
     const res = await postTasteChat({ message: text, history })
-    console.log("AI 응답 데이터:", res) // 디버깅용: 여기서 데이터 구조를 꼭 확인하세요!
 
-    // 4. AI 답변 추가
-    const reply = res?.answer || '추천 결과입니다.'
-    chatMessages.value.push({ role: 'assistant', content: reply })
-
-    /**
-     * 5. 영화 목록 처리 (정규화 로직 추가)
-     * 백엔드에 따라 movies 혹은 results로 올 수 있으므로 둘 다 체크합니다.
-     */
-    const rawList = res?.movies || res?.results || []
+    target.messages.push({ role: 'assistant', content: res.answer })
     
-    chatMovies.value = rawList.map(m => ({
-      // id만 올 경우 tmdb_id로 변환해주는 방어 로직
+    // 🔥 백엔드 결과가 많더라도 프론트에서 3개로 제한 (slice)
+    const rawMovies = (res.movies || []).slice(0, 3) 
+    const reasons = res.recommended_reasons || {}
+    
+    target.movies = rawMovies.map(m => ({
+      ...m,
       tmdb_id: m.tmdb_id || m.id,
-      title: m.title || m.name || '제목 없음',
-      poster_path: m.poster_path || '',
-      vote_average: m.vote_average ?? 0
-    })).filter(m => m.tmdb_id) // ID가 있는 것만 남김
+      ai_reason: reasons[m.title] || reasons[m.name]
+    }))
 
   } catch (e) {
-    console.error("AI 추천 에러:", e)
-    chatMessages.value.push({ role: 'assistant', content: '죄송합니다. 서버와 연결이 원활하지 않습니다.' })
+    target.messages.push({ role: 'assistant', content: '서버 통신 중 오류가 발생했습니다.' })
   } finally {
     chatLoading.value = false
     await scrollToBottom()
   }
 }
+
+const posterUrl = (p) => p ? `https://image.tmdb.org/t/p/w200${p}` : ''
+const goMovie = (id) => router.push({ name: 'movie-detail', params: { tmdbId: id } })
+const scrollToBottom = async () => { 
+  await nextTick()
+  if (chatWindow.value) chatWindow.value.scrollTop = chatWindow.value.scrollHeight 
+}
 </script>
 
 <style scoped>
-.panel { border: 1px solid #eee; border-radius: 16px; padding: 18px; background: #fff; }
+.ai-recommend-layout { display: flex; gap: 20px; max-width: 1100px; margin: 0 auto; height: 750px; }
 
-.chat-box {
-  border: 1px solid #eee;
-  border-radius: 16px;
-  padding: 16px;
-  background: #f9f9f9;
-  height: 350px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+/* 사이드바 */
+.chat-sidebar { width: 220px; border: 1px solid #eee; border-radius: 16px; padding: 15px; display: flex; flex-direction: column; background: #fff; }
+.sidebar-top { margin-bottom: 20px; }
+.sidebar-title { font-size: 16px; font-weight: 900; margin-bottom: 12px; }
+.new-chat-btn { width: 100%; padding: 10px; background: #111; color: #fff; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; }
 
-/* 스크롤바 디자인 (선택사항) */
-.chat-box::-webkit-scrollbar { width: 6px; }
-.chat-box::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+.chat-history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.history-item { padding: 10px; border-radius: 8px; border: 1px solid #f0f0f0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.history-item.active { border-color: #111; background: #f9f9f9; font-weight: bold; }
+.history-text { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
+.delete-chat { border: none; background: none; color: #ccc; cursor: pointer; font-size: 16px; }
 
-.msg { display: flex; }
-.msg.user { justify-content: flex-end; }
-.msg.assistant { justify-content: flex-start; }
+/* 메인 패널 */
+.main-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; }
 
-.bubble {
-  max-width: 85%;
-  padding: 12px 16px;
-  border-radius: 18px;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.5;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-.msg.user .bubble { background: #111; color: #fff; border-bottom-right-radius: 4px; }
-.msg.assistant .bubble { background: #fff; color: #222; border: 1px solid #eee; border-bottom-left-radius: 4px; }
+.input-section { background: #fff; border: 2px solid #111; border-radius: 16px; padding: 18px; }
+.input-container { display: flex; gap: 12px; }
+textarea { flex: 1; border: none; outline: none; resize: none; height: 60px; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.send-btn { background: #111; color: #fff; border: none; padding: 0 18px; border-radius: 10px; cursor: pointer; font-weight: 800; }
 
-.input-row { margin-top: 15px; display: flex; gap: 10px; }
-.input {
-  flex: 1;
-  height: 48px;
-  border-radius: 12px;
-  border: 1px solid #ddd;
-  padding: 0 15px;
-  font-size: 14px;
-  font-weight: 600;
-}
-.btn {
-  width: 80px;
-  border-radius: 12px;
-  background: #111;
-  color: #fff;
-  font-weight: 900;
-  cursor: pointer;
-  border: none;
-}
-.btn:disabled { opacity: 0.4; }
+.quick-tags { display: flex; gap: 8px; margin-top: 12px; }
+.tag-btn { padding: 6px 12px; border-radius: 15px; border: 1px solid #eee; background: #f5f5f5; font-size: 12px; font-weight: 800; cursor: pointer; }
 
-.movie-section { margin-top: 25px; border-top: 2px solid #f5f5f5; pt: 20px; }
-.result-title { font-size: 16px; font-weight: 900; margin-bottom: 15px; color: #333; }
+/* 채팅창 */
+.chat-display { flex: 1; background: #fff; border: 1px solid #eee; border-radius: 16px; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.msg-row { display: flex; gap: 10px; align-items: flex-start; }
+.msg-row.user { justify-content: flex-end; }
+.bot-icon { font-size: 24px; padding: 4px; border-radius: 50%; border: 1px solid #eee; background: #f9f9f9; }
+.bubble { max-width: 75%; padding: 12px 16px; border-radius: 14px; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.assistant .bubble { background: #f0f0f0; border-top-left-radius: 2px; }
+.user .bubble { background: #111; color: #fff; border-top-right-radius: 2px; }
 
-.movie-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 15px;
-}
+/* 가로형 영화 카드 (3편 레이아웃) */
+.movie-results { display: flex; flex-direction: column; gap: 15px; padding-left: 45px; }
+.horizontal-card { display: flex; gap: 15px; padding: 12px; border: 1px solid #ddd; border-radius: 14px; background: #fff; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+.horizontal-card:hover { transform: scale(1.01); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
+.poster-box { width: 70px; aspect-ratio: 2/3; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.poster-box img { width: 100%; height: 100%; object-fit: cover; }
 
-.movie-card {
-  border: 1px solid #eee;
-  border-radius: 14px;
-  background: #fff;
-  padding: 8px;
-  text-align: left;
-  transition: transform 0.2s;
-}
-.movie-card:hover { transform: translateY(-5px); }
+.info-box { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.info-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.m-title { font-size: 15px; font-weight: 900; margin: 0; }
+.stars { font-size: 13px; font-weight: 800; color: #f1c40f; }
 
-.thumb {
-  width: 100%;
-  aspect-ratio: 2/3;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #eee;
-}
-.thumb img { width: 100%; height: 100%; object-fit: cover; }
-.noimg { height: 100%; display: grid; place-items: center; color: #999; font-size: 12px; }
-
-.mmeta { margin-top: 10px; padding: 0 4px; }
-.mtitle { 
-  margin: 0; 
-  font-weight: 800; 
-  font-size: 13px; 
-  white-space: nowrap; 
-  overflow: hidden; 
-  text-overflow: ellipsis; 
-}
-.msub { margin: 4px 0 0; color: #ff9900; font-weight: 800; font-size: 12px; }
-
-.empty-movies { 
-  margin-top: 20px; 
-  text-align: center; 
-  color: #999; 
-  font-size: 14px; 
-  font-weight: 700; 
-}
+/* AI 추천 이유 박스 (스케치 스타일) */
+.ai-reason-box { background: #666; color: #fff; border-radius: 10px; padding: 10px 14px; display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; }
+.check-icon { background: #444; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; display: grid; place-items: center; flex-shrink: 0; margin-top: 2px; }
+.reason-content { flex: 1; }
+.reason-label { font-size: 11px; font-weight: 800; opacity: 0.8; display: block; margin-bottom: 2px; }
+.reason-text { font-size: 12px; font-weight: 600; margin: 0; line-height: 1.4; }
 </style>

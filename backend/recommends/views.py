@@ -18,8 +18,54 @@ try:
 except Exception:
     Follow = None
 
-from .services.ai import run_taste_ai
+from .services.ai import GENRE_LIST, run_taste_ai
 from .models import TastePromptLog
+
+import re
+from django.db.models import Q, Count
+
+EXCLUDE_PATTERN = r"([가-힣A-Za-z0-9\s·:_\-]+?)\s*(?:은|는|을|를)?\s*(?:빼고|제외|말고|빼줘|제외해|제외해줘)"
+
+def parse_excludes_from_message(message: str):
+    """
+    예)
+    - '체인소맨 빼고' -> exclude_titles=['체인소맨']
+    - '애니메이션은 제외해줘' -> exclude_genres=['애니메이션']
+    - '체인소맨, 드라큘라 제외' -> exclude_titles=['체인소맨','드라큘라']
+    """
+    if not message:
+        return [], []
+
+    hits = re.findall(EXCLUDE_PATTERN, message)
+    exclude_genres, exclude_titles = [], []
+
+    for h in hits:
+        term = (h or "").strip()
+        term = term.replace("영화", "").strip()
+        if not term:
+            continue
+
+        parts = re.split(r"[,\n]|그리고|랑|하고|&|/", term)
+        parts = [p.strip() for p in parts if p.strip()]
+
+        for p in parts:
+            if p in GENRE_LIST:
+                exclude_genres.append(p)
+            else:
+                exclude_titles.append(p)
+
+    # 중복 제거
+    exclude_genres = list(dict.fromkeys(exclude_genres))
+    exclude_titles = list(dict.fromkeys(exclude_titles))
+    return exclude_genres, exclude_titles
+
+
+def build_title_q(field: str, terms: list[str]) -> Q:
+    q = Q()
+    for t in terms:
+        q |= Q(**{f"{field}__icontains": t})
+    return q
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -34,7 +80,7 @@ def ai_taste(request):
     if not message:
         return Response({"detail": "message가 비었습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # 1. AI 분석 수행
+    # 1) AI 분석
     data, raw = run_taste_ai(message, history=history)
 
     # 로그 저장
@@ -48,55 +94,135 @@ def ai_taste(request):
     except Exception:
         pass
 
-    # 2. 필터 추출
+    # 2) 필터 추출 (AI + 메시지 파싱)
     filters = data.get("filters") or {}
+
+    primary = filters.get("primary_genre_name")  # 있으면 활용 (없어도 OK)
     genre_names = filters.get("genre_names") or []
     keywords = filters.get("keywords") or []
-    titles = filters.get("titles") or [] # AI가 찾은 영화 제목들
+    titles = filters.get("titles") or []
     min_vote = float(filters.get("min_vote") or 0)
+    strict = bool(filters.get("strict")) if isinstance(filters.get("strict"), (bool, int)) else False
 
-    # 3. DB 쿼리 구성
-    qs = Movie.objects.all().prefetch_related("genres")
-    
-    # [핵심] 검색 로직 강화: AI가 언급한 제목이 있거나, 장르/키워드 조건에 맞는 영화 찾기
-    main_q = Q()
+    # ✅ 새로 추가될 필드(유저 ai 코드에서 추가 예정)
+    exclude_genres_ai = filters.get("exclude_genre_names") or []
+    exclude_titles_ai = filters.get("exclude_titles") or []  # 없으면 []
 
-    # (A) 제목 매칭 (AI가 특정 영화를 추천했을 경우)
-    if titles:
-        for t in titles:
-            main_q |= Q(title__icontains=t)
+    # ✅ 사용자가 직접 쓴 "빼고/제외"는 AI가 실수해도 강제 제외
+    exclude_genres_msg, exclude_titles_msg = parse_excludes_from_message(message)
 
-    # (B) 장르 및 키워드 매칭
-    sub_q = Q()
-    if genre_names:
-        g_ids = list(Genre.objects.filter(name__in=genre_names).values_list("tmdb_id", flat=True))
-        if g_ids:
-            sub_q &= Q(genres__tmdb_id__in=g_ids)
+    exclude_genre_names = list(dict.fromkeys([*exclude_genres_ai, *exclude_genres_msg]))
+    exclude_titles = list(dict.fromkeys([*exclude_titles_ai, *exclude_titles_msg]))
 
-    if keywords:
-        k_q = Q()
-        for k in keywords:
-            k_q |= Q(title__icontains=k) | Q(overview__icontains=k)
-        sub_q &= k_q
+    # ✅ (중요) exclude_titles에 있는 건 titles(포함 후보)에서 제거 (체인소맨 포함 방지)
+    titles = [t for t in titles if t not in exclude_titles]
 
-    # 최종 필터링: (제목 매칭) 또는 (장르&키워드 매칭)
-    combined_q = main_q | sub_q
-    if combined_q:
-        qs = qs.filter(combined_q)
+    # include 장르 구성: primary를 맨 앞에 두고 중복 제거
+    include_genres = []
+    if isinstance(primary, str) and primary.strip():
+        include_genres.append(primary.strip())
+    include_genres += [g for g in genre_names if isinstance(g, str) and g.strip()]
+    # 중복 제거 + exclude 제거
+    include_genres = list(dict.fromkeys([g for g in include_genres if g not in exclude_genre_names]))
 
+    # 3) DB 쿼리 시작
+    base_qs = Movie.objects.all().prefetch_related("genres")
+
+    # ✅ A) 제외 장르 먼저 적용 (가장 먼저!)
+    if exclude_genre_names:
+        base_qs = base_qs.exclude(genres__name__in=exclude_genre_names)
+
+    # ✅ B) 제외 제목 적용 (체인소맨 빼고)
+    if exclude_titles:
+        base_qs = base_qs.exclude(build_title_q("title", exclude_titles))
+
+    # ✅ C) 평점 컷
     if min_vote > 0:
-        qs = qs.filter(vote_average__gte=min_vote)
+        base_qs = base_qs.filter(vote_average__gte=min_vote)
 
-    # 중복 제거 및 정렬 (인기순/평점순)
-    qs = qs.distinct().order_by("-popularity", "-vote_average")[:12]
+    # 키워드 Q (OR로 묶되, 전체 흐름에서는 AND처럼 적용)
+    k_q = Q()
+    if keywords:
+        for k in keywords:
+            k = (k or "").strip()
+            if not k:
+                continue
+            k_q |= Q(title__icontains=k) | Q(overview__icontains=k)
+
+    # -----------------------------
+    # ✅ 4) "좋은 결과" 우선 전략: 장르/키워드를 기본으로, 없으면 점진적 완화
+    # -----------------------------
+    qs = base_qs
+
+    # (1) 장르 적용
+    if include_genres:
+        if strict:
+            # strict: 장르 모두 만족(AND)
+            for g in include_genres:
+                qs = qs.filter(genres__name=g)
+            qs = qs.distinct()
+        else:
+            # non-strict: 장르 일치 개수로 랭킹 (많이 맞을수록 위)
+            qs = qs.annotate(
+                match_genres=Count("genres", filter=Q(genres__name__in=include_genres), distinct=True)
+            ).distinct()
+
+    # (2) 키워드 적용 (가능하면 유지)
+    qs_with_kw = qs
+    if k_q:
+        qs_with_kw = qs.filter(k_q).distinct()
+
+    # ✅ 결과가 너무 적으면 fallback: 키워드 제거하고 장르만
+    if k_q and not qs_with_kw.exists():
+        qs_final = qs
+    else:
+        qs_final = qs_with_kw
+
+    # ✅ 그래도 없으면 fallback: 장르도 제거하고 키워드만(단, exclude는 유지됨)
+    if include_genres and not qs_final.exists() and k_q:
+        qs_final = base_qs.filter(k_q).distinct()
+
+    # ✅ 그래도 없으면 마지막 fallback: titles 매칭(단, exclude_titles는 이미 빠짐)
+    if not qs_final.exists() and titles:
+        t_q = Q()
+        for t in titles:
+            t_q |= Q(title__icontains=t)
+        qs_final = base_qs.filter(t_q).distinct()
+
+    # -----------------------------
+    # ✅ 5) 정렬 (non-strict면 match_genres 우선)
+    # -----------------------------
+    if not strict and include_genres:
+        qs_final = qs_final.order_by("-match_genres", "-popularity", "-vote_average")
+    else:
+        qs_final = qs_final.order_by("-popularity", "-vote_average")
+
+    qs_final = qs_final[:12]
+
+    serialized = MovieListSerializer(qs_final, many=True).data
+
+    # (선택) AI가 준 recommended_reasons가 있으면 title 기준으로 매핑해서 tmdb_id 키로 내려주기
+    reasons_by_title = data.get("recommended_reasons") or {}
+    reasons_by_tmdb = {}
+    if isinstance(reasons_by_title, dict):
+        for m in serialized:
+            tmdb_id = m.get("tmdb_id")
+            title = m.get("title")
+            if tmdb_id and title and title in reasons_by_title:
+                reasons_by_tmdb[str(tmdb_id)] = reasons_by_title[title]
 
     return Response({
         "answer": data.get("answer", "조건에 맞는 영화를 찾아보았습니다."),
-        "filters": filters,
-        "movies": MovieListSerializer(qs, many=True).data,
+        "filters": {
+            **filters,
+            "exclude_genre_names": exclude_genre_names,
+            "exclude_titles": exclude_titles,
+        },
+        "movies": serialized,
+        "recommended_reasons": reasons_by_tmdb,  # 프론트에서 카드에 붙여쓰기 쉬움
     })
 
-# --- 이하 기존 함수들 (변경 없음) ---
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])

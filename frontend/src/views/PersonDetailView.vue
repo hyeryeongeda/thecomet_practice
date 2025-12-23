@@ -160,22 +160,26 @@ watch(tmdbId, load)
 </script>
 
 <style scoped>
-.page { background:#fff; min-height:calc(100vh - 60px); }
+/* ✅ 배경색을 테마 변수로 변경 */
+.page { background: var(--bg, #fff); min-height:calc(100vh - 60px); }
 .container { width:min(1100px, 92vw); margin:0 auto; padding:22px 0 60px; }
 
 .hero { display:flex; gap:16px; align-items:center; margin-bottom:18px; }
-.avatar { width:88px; height:88px; border-radius:18px; object-fit:cover; background:#f2f2f2; }
-.fallback { display:grid; place-items:center; color:#777; }
+
+/* ✅ 아바타 배경색 변경 */
+.avatar { width:88px; height:88px; border-radius:18px; object-fit:cover; background: var(--input-bg, #f2f2f2); }
+/* ✅ fallback 텍스트 색상 변경 */
+.fallback { display:grid; place-items:center; color: var(--muted, #777); }
 
 .meta { display: flex; flex-direction: column; justify-content: center; }
 
-/* ✅ [추가] 이름과 하트 버튼 가로 정렬 */
 .name-row { display: flex; align-items: center; gap: 8px; }
 
-.name { margin:0; font-size:28px; font-weight:900; }
-.dept { margin:6px 0 0; color:#666; font-weight:700; }
+/* ✅ 이름 텍스트 색상 명시적 지정 */
+.name { margin:0; font-size:28px; font-weight:900; color: var(--text, #111); }
+/* ✅ 부서 텍스트 색상 변경 */
+.dept { margin:6px 0 0; color: var(--muted, #666); font-weight:700; }
 
-/* ✅ [추가] 하트 버튼 스타일 (테두리 없음, 배경 없음) */
 .heart-btn {
   background: transparent;
   border: none;
@@ -188,28 +192,51 @@ watch(tmdbId, load)
 }
 .heart-btn:hover { transform: scale(1.1); }
 
-/* ✅ [추가] 하트 아이콘 (RecommendPerson.vue 스타일 차용) */
+/* ✅ 하트 아이콘 (비활성 상태) 테마 적용 */
+/* fill은 좀 더 밝은 회색 변수, stroke는 일반 테두리 변수 사용 */
 .heart-icon {
-  fill: #e0e0e0; /* 기본 회색 */
-  stroke: #ccc;
+  fill: var(--heart-inactive, #e0e0e0); 
+  stroke: var(--border, #ccc);
   stroke-width: 1;
   transition: all 0.3s ease;
 }
+/* ✅ 하트 아이콘 (활성 상태) 테마 적용 - 프라이머리 컬러 사용 */
 .heart-icon.active {
-  fill: #ff2f6e; /* 활성화 시 핑크/레드 */
-  stroke: #ff2f6e;
+  fill: var(--primary, #ff2f6e);
+  stroke: var(--primary, #ff2f6e);
 }
 
 .tabs { display:flex; gap:10px; margin-top:12px; }
-.tabs button { height:36px; padding:0 14px; border-radius:999px; border:1px solid #ddd; background:#fff; font-weight:800; cursor:pointer; }
-.tabs button.active { border-color:#111; }
+/* ✅ 탭 버튼 테마 적용 (테두리, 배경, 글자색) */
+.tabs button { 
+  height:36px; 
+  padding:0 14px; 
+  border-radius:999px; 
+  border:1px solid var(--border, #ddd); 
+  background: var(--card, #fff); 
+  color: var(--muted, #666); /* 기본은 회색 */
+  font-weight:800; 
+  cursor:pointer; 
+  transition: all 0.2s; /* 부드러운 전환 추가 */
+}
+/* ✅ 활성화된 탭 버튼 테마 적용 */
+.tabs button.active { 
+  border-color: var(--text, #111); 
+  color: var(--text, #111); /* 활성화 시 진한 글자색 */
+}
 
-.h2 { margin:16px 0 10px; font-size:18px; font-weight:900; }
+/* ✅ 소제목 텍스트 색상 */
+.h2 { margin:16px 0 10px; font-size:18px; font-weight:900; color: var(--text, #111); }
 .grid { display:grid; grid-template-columns:repeat(6, 1fr); gap:12px; }
-.card { cursor:pointer; border:1px solid #eee; border-radius:14px; overflow:hidden; background:#fff; }
-.poster { width:100%; aspect-ratio:2/3; object-fit:cover; background:#f2f2f2; }
-.title { padding:10px 10px 0; font-weight:900; font-size:13px; }
-.sub { padding:6px 10px 10px; color:#666; font-weight:700; font-size:12px; }
+
+/* ✅ 카드 테마 적용 (테두리, 배경) */
+.card { cursor:pointer; border:1px solid var(--border, #eee); border-radius:14px; overflow:hidden; background: var(--card, #fff); }
+/* ✅ 포스터 스켈레톤 배경색 */
+.poster { width:100%; aspect-ratio:2/3; object-fit:cover; background: var(--input-bg, #f2f2f2); }
+/* ✅ 카드 제목 색상 */
+.title { padding:10px 10px 0; font-weight:900; font-size:13px; color: var(--text, #111); }
+/* ✅ 카드 서브 텍스트 색상 */
+.sub { padding:6px 10px 10px; color: var(--muted, #666); font-weight:700; font-size:12px; }
 
 @media (max-width: 980px){ .grid{ grid-template-columns:repeat(4, 1fr);} }
 @media (max-width: 640px){ .grid{ grid-template-columns:repeat(2, 1fr);} }

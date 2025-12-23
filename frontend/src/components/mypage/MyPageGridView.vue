@@ -27,6 +27,8 @@
           v-for="item in items" 
           :key="item.id" 
           :review="item" 
+          @click="openReviewModal(item)"
+          style="cursor: pointer;"
         />
       </template>
 
@@ -44,13 +46,18 @@
     <div v-else class="empty">
       보관된 데이터가 없습니다.
     </div>
+
+    <ReviewDetailModal 
+      v-if="isReviewModalOpen" 
+      :review="selectedReview" 
+      @close="isReviewModalOpen = false" 
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-// ✅ [수정] 필요한 API 함수들 추가 임포트 (fetchMyLikedPeople, togglePersonLike)
 import { fetchMyActivity, fetchMyLikes, fetchMyLikedPeople, togglePersonLike } from '@/api/comet' 
 
 // 컴포넌트 임포트
@@ -58,6 +65,8 @@ import SortDropdown from '@/components/ui/SortDropdown.vue'
 import MovieCard from '@/components/movie/MovieCard.vue'
 import PersonCard from '@/components/movie/PersonCard.vue' 
 import ReviewCard from '@/components/review/ReviewCard.vue'
+// ✅ [수정 3] ReviewDetailModal 임포트
+import ReviewDetailModal from '@/components/review/ReviewDetailModal.vue'
 
 const route = useRoute()
 const type = route.params.type 
@@ -65,11 +74,15 @@ const items = ref([])
 const loading = ref(false)
 const currentSort = ref('latest')
 
+// ✅ [수정 4] 모달 관련 상태 변수 추가
+const isReviewModalOpen = ref(false)
+const selectedReview = ref(null)
+
 const pageTitle = computed(() => {
   const titles = {
     watched: '봤던 영화',
-    wish: '보고싶은 영화',      // 문맥상 '보고싶은 영화'가 맞아서 수정 제안 (원하시는대로 두셔도 됨)
-    movie_likes: '좋아요 한 영화', // movie_likes 케이스 추가
+    wish: '보고싶은 영화',
+    movie_likes: '좋아요 한 영화',
     commented: '코멘트 작성한 영화',
     liked_people: '좋아요한 인물',
     liked_reviews: '좋아요한 코멘트'
@@ -77,12 +90,8 @@ const pageTitle = computed(() => {
   return titles[type] || '목록'
 })
 
-// ✅ [추가] 인물 좋아요 취소 핸들러
 async function handleUnlikePerson(person) {
-  // 1. 화면에서 즉시 제거
   items.value = items.value.filter(p => p.tmdb_id !== person.tmdb_id)
-  
-  // 2. 서버 요청
   try {
     await togglePersonLike(person.tmdb_id)
   } catch (e) {
@@ -91,24 +100,25 @@ async function handleUnlikePerson(person) {
   }
 }
 
+// ✅ [수정 5] 리뷰 클릭 시 모달 여는 함수 추가
+function openReviewModal(review) {
+  selectedReview.value = review
+  isReviewModalOpen.value = true
+}
+
 async function loadData() {
   loading.value = true
   try {
-    // ✅ [수정] 타입별 API 호출 로직 정비
     if (type === 'liked_people') {
-      // 인물: 새로 만든 API 사용
       items.value = await fetchMyLikedPeople()
     } 
     else if (type === 'movie_likes') {
-      // 영화 좋아요: fetchMyLikes('movie') 사용
       items.value = await fetchMyLikes('movie')
     }
     else if (type === 'liked_reviews') {
-      // 리뷰 좋아요
       items.value = await fetchMyActivity({ status: 'liked', sort: currentSort.value })
     } 
     else {
-      // 나머지 (commented, wish 등)
       items.value = await fetchMyActivity({ status: type, sort: currentSort.value })
     }
   } catch (e) {
@@ -122,6 +132,7 @@ onMounted(loadData)
 </script>
 
 <style scoped>
+/* 기존 스타일 유지 */
 .page { max-width: 1100px; margin: 0 auto; padding: 20px 14px 60px; }
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid #eee; }
 .title { font-size: 22px; font-weight: 900; margin: 0; }

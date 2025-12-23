@@ -102,10 +102,7 @@ export async function fetchMe() {
   return res.data
 }
 
-// export async function updateMyProfile(payload) {
-//   const res = await api.patch('/auth/me/profile/', payload)
-//   return res.data
-// }
+
 
 export async function updateMyTheme(theme) {
   const res = await api.patch('/auth/me/theme/', { theme })

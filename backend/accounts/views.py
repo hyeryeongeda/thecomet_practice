@@ -1,9 +1,11 @@
 from django.contrib.auth import authenticate, get_user_model
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes # ✅ parser_classes 추가
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from rest_framework.parsers import MultiPartParser, FormParser # ✅ Parser들 추가
 
 from .models import Follow, UserSetting
 from .serializers import (
@@ -73,6 +75,7 @@ def me(request):
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser]) # ✅ 이미지 파일 전송을 위해 필수 추가!
 def update_profile(request):
     user = request.user
     

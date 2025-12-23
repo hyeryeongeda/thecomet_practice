@@ -5,6 +5,34 @@
       <p class="hero-sub">인기 / 최신 / 극찬작을 한 번에 둘러보자.</p>
     </section>
 
+    <section class="banner-section">
+      <div class="banner-container">
+        <div 
+          class="banner-slide" 
+          @click="goBannerLink(banners[currentIndex].link)"
+        >
+          <img :src="banners[currentIndex].image" class="banner-img" alt="메인 배너" />
+        </div>
+
+        <button class="banner-nav-btn prev" @click="prevBanner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <button class="banner-nav-btn next" @click="nextBanner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+
+        <div class="dots-container">
+          <span 
+            v-for="(banner, index) in banners" 
+            :key="index" 
+            class="dot" 
+            :class="{ active: index === currentIndex }"
+            @click="setBanner(index)"
+          ></span>
+        </div>
+      </div>
+    </section>
+
     <hr class="divider" />
 
     <section class="sec">
@@ -38,8 +66,8 @@
       </div>
       <p v-if="reviewsLoading" class="muted">불러오는 중...</p>
       
-      <div class="review-slider-wrapper">
-        <button class="nav-btn left" @click="scrollPrev">‹</button>
+      <div v-else class="review-slider-wrapper">
+        <button class="slider-nav-btn left" @click="scrollPrev">‹</button>
 
         <div class="review-scroll-container" ref="scrollContainer">
           <ReviewCard
@@ -51,7 +79,7 @@
           />
         </div>
 
-        <button class="nav-btn right" @click="scrollNext">›</button>
+        <button class="slider-nav-btn right" @click="scrollNext">›</button>
       </div>
     </section>
 
@@ -89,6 +117,58 @@ import ReviewDetailModal from '@/components/review/ReviewDetailModal.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 
+/* --- [배너 데이터 & 로직] --- */
+const currentIndex = ref(0)
+const banners = ref([
+  { 
+    image: 'https://via.placeholder.com/1600x685/111111/FFFFFF?text=21:9+AD+Banner+1', 
+    link: '/movies' 
+  },
+  { 
+    image: 'https://via.placeholder.com/1600x685/222222/FFFFFF?text=21:9+AD+Banner+2', 
+    link: '/mypage'
+  },
+  { 
+    image: 'https://via.placeholder.com/1600x685/333333/FFFFFF?text=21:9+AD+Banner+3', 
+    link: '#'
+  }
+])
+
+function nextBanner() {
+  currentIndex.value = (currentIndex.value + 1) % banners.value.length
+}
+function prevBanner() {
+  currentIndex.value = (currentIndex.value - 1 + banners.value.length) % banners.value.length
+}
+function setBanner(index) {
+  currentIndex.value = index
+}
+function goBannerLink(link) {
+  if (link && link !== '#') router.push(link)
+}
+
+/* --- [댓글 슬라이더 로직] --- */
+const scrollContainer = ref(null)
+
+const scrollPrev = () => {
+  if (scrollContainer.value) {
+    scrollContainer.value.scrollBy({
+      left: -scrollContainer.value.clientWidth, // 화면 너비만큼 왼쪽 이동
+      behavior: 'smooth'
+    })
+  }
+}
+
+const scrollNext = () => {
+  if (scrollContainer.value) {
+    scrollContainer.value.scrollBy({
+      left: scrollContainer.value.clientWidth, // 화면 너비만큼 오른쪽 이동
+      behavior: 'smooth'
+    })
+  }
+}
+
+/* --- [기본 데이터 로딩] --- */
 const loading = ref(false)
 const popular = ref([])
 const nowPlaying = ref([])
@@ -123,7 +203,7 @@ async function loadRecentReviews() {
   }
 }
 
-// [모달 열기]
+/* --- [모달 및 기능 함수들] --- */
 async function openReviewModal(review) {
   selectedReview.value = review
   try {
@@ -140,49 +220,21 @@ function closeDetailModal() {
   selectedReview.value = null
 }
 
-// 🔥 [삭제 반영] 리스트에서 리뷰 삭제 (새로고침 없이 반영)
 function handleReviewDeleteLocal(reviewId) {
   recentReviews.value = recentReviews.value.filter(r => r.id !== reviewId)
   closeDetailModal()
 }
 
-// 🔥 [수정 반영] 리스트에 수정 내용 덮어쓰기 (새로고침 없이 반영)
 function handleReviewUpdateLocal(updatedReview) {
-  // 리스트에서 찾아서 업데이트
   const idx = recentReviews.value.findIndex(r => r.id === updatedReview.id)
   if (idx !== -1) {
     recentReviews.value[idx] = { ...recentReviews.value[idx], ...updatedReview }
   }
-  
-  // 모달에 떠있는 데이터도 업데이트 (이게 없으면 모달 닫기 전까지 옛날 내용 보임)
   if (selectedReview.value && selectedReview.value.id === updatedReview.id) {
     selectedReview.value = { ...selectedReview.value, ...updatedReview }
   }
 }
-const scrollContainer = ref(null)
 
-// 왼쪽으로 이동
-const scrollPrev = () => {
-  if (scrollContainer.value) {
-    // 현재 컨테이너 너비만큼 왼쪽으로 부드럽게 이동
-    scrollContainer.value.scrollBy({
-      left: -scrollContainer.value.clientWidth,
-      behavior: 'smooth'
-    })
-  }
-}
-
-// 오른쪽으로 이동
-const scrollNext = () => {
-  if (scrollContainer.value) {
-    // 현재 컨테이너 너비만큼 오른쪽으로 부드럽게 이동
-    scrollContainer.value.scrollBy({
-      left: scrollContainer.value.clientWidth,
-      behavior: 'smooth'
-    })
-  }
-}
-// [댓글 작성]
 async function handleReplySubmit(content) {
   if (!authStore.isLoggedIn) return alert('로그인 후 이용해주세요.')
   try {
@@ -193,12 +245,10 @@ async function handleReplySubmit(content) {
   }
 }
 
-// [댓글 삭제]
 function handleReplyDelete(commentId) {
   reviewComments.value = reviewComments.value.filter(c => c.id !== commentId)
 }
 
-// [좋아요 토글]
 async function handleReviewLike(reviewId) {
   if (!authStore.isLoggedIn) return alert('로그인 후 이용해주세요.')
   try {
@@ -237,64 +287,81 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 1. 기본 레이아웃 및 텍스트 (테마 대응) */
+/* =========================================
+   1. 공통 레이아웃
+   ========================================= */
 .page { 
   max-width: 1100px; 
   margin: 0 auto; 
   padding: 20px 14px 60px; 
-  color: var(--text); /* #111 -> 테마 적용 */
-}
-
-.hero { padding: 26px 0 18px; }
-.hero-title { 
-  margin: 0; 
-  font-size: 44px; 
-  font-weight: 900; 
-  letter-spacing: -0.02em; 
-  color: var(--text); 
-}
-.hero-sub { 
-  margin: 10px 0 0; 
-  color: var(--muted); /* #666 -> 테마 적용 */
-  font-weight: 700; 
-}
-
-.divider { 
-  border: none; 
-  border-top: 1px solid var(--border); /* #eee -> 테마 적용 */
-  margin: 18px 0 22px; 
-}
-
-.sec { margin-top: 18px; }
-.sec-head { 
-  display: flex; 
-  align-items: center; 
-  justify-content: space-between; 
-  gap: 10px; 
-  margin-bottom: 10px; 
-}
-.sec-title { 
-  margin: 0; 
-  font-size: 18px; 
-  font-weight: 900; 
   color: var(--text);
 }
+.hero { padding: 26px 0 18px; }
+.hero-title { margin: 0; font-size: 44px; font-weight: 900; letter-spacing: -0.02em; color: var(--text); }
+.hero-sub { margin: 10px 0 0; color: #666; font-weight: 700; }
 
-.more { 
-  border: none; 
-  background: transparent; 
-  cursor: pointer; 
-  color: var(--muted); 
-  font-weight: 900; 
+.divider { border: none; border-top: 1px solid #eee; margin: 18px 0 22px; }
+.sec { margin-top: 18px; }
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.sec-title { margin: 0; font-size: 18px; font-weight: 900; color: var(--text); }
+.more { border: none; background: transparent; cursor: pointer; color: #666; font-weight: 900; }
+.more:hover { text-decoration: underline; color: var(--primary); }
+.muted { color: #777; margin: 10px 0 0; }
+
+
+/* =========================================
+   2. 배너 섹션 스타일 (21:9)
+   ========================================= */
+.banner-section { margin-top: 10px; margin-bottom: 30px; }
+.banner-container { 
+  position: relative; 
+  width: 100%; 
+  aspect-ratio: 21 / 9; 
+  border-radius: 12px; 
+  overflow: hidden; 
+  background: #000;
 }
-.more:hover { 
-  text-decoration: underline; 
-  color: var(--primary); 
+.banner-slide { width: 100%; height: 100%; cursor: pointer; }
+.banner-img { width: 100%; height: 100%; object-fit: cover; }
+
+/* 배너 전용 버튼 (투명하고 큰 영역) */
+.banner-nav-btn {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 15%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.3s;
+  z-index: 5;
 }
+.banner-nav-btn:hover { color: rgba(255, 255, 255, 1); }
+.banner-nav-btn.prev { left: 0; justify-content: flex-start; padding-left: 20px; }
+.banner-nav-btn.next { right: 0; justify-content: flex-end; padding-right: 20px; }
+.banner-nav-btn svg { width: 40px; height: 40px; filter: drop-shadow(0 0 4px rgba(0,0,0,0.5)); }
 
-.muted { color: var(--muted); margin: 10px 0 0; }
+/* 배너 점(Pagination) */
+.dots-container {
+  position: absolute; bottom: 16px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 8px; z-index: 10;
+}
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer; transition: all 0.2s;
+}
+.dot:hover { background: rgba(255, 255, 255, 0.8); }
+.dot.active { background: #fff; transform: scale(1.2); }
 
-/* 2. 슬라이더 래퍼 */
+
+/* =========================================
+   3. 리뷰 슬라이더 스타일 (새로운 기능)
+   ========================================= */
 .review-slider-wrapper {
   position: relative;
   display: flex;
@@ -302,88 +369,62 @@ onMounted(() => {
   width: 100%;
 }
 
-/* 3. 리뷰 그리드 컨테이너 (핵심: 3열 2행 설정) */
 .review-scroll-container {
   display: grid;
-  /* ✅ 2줄(행)로 고정 */
-  grid-template-rows: repeat(2, 1fr); 
-  /* ✅ 아이템을 위->아래로 먼저 채우고 가로(열)로 확장 */
-  grid-auto-flow: column; 
-  /* ✅ 한 화면에 3개씩 노출 (간격 16px을 고려한 계산값) */
-  grid-auto-columns: calc(33.333% - 10.7px); 
-  
-  gap: 16px; 
-  overflow-x: auto; 
-  scroll-behavior: smooth; 
-  scroll-snap-type: x mandatory; 
+  grid-template-rows: repeat(2, 1fr); /* 2줄 고정 */
+  grid-auto-flow: column; /* 가로 흐름 */
+  grid-auto-columns: calc(33.333% - 10.7px); /* 3개씩 보기 */
+  gap: 16px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
   padding: 10px 0;
   
-  /* 스크롤바 숨기기 */
-  scrollbar-width: none; /* 파이어폭스 */
-  -ms-overflow-style: none; /* IE */
+  /* 스크롤바 숨김 */
+  scrollbar-width: none; 
+  -ms-overflow-style: none;
 }
-
-/* 크롬, 사파리 스크롤바 숨기기 */
-.review-scroll-container::-webkit-scrollbar {
-  display: none;
-}
+.review-scroll-container::-webkit-scrollbar { display: none; }
 
 .slider-item {
   width: 100%;
-  scroll-snap-align: start; /* 넘길 때 시작점에 딱 붙음 */
+  scroll-snap-align: start;
 }
 
-/* 4. 네비게이션 버튼 스타일 */
-.nav-btn {
+/* 슬라이더 전용 버튼 (작은 동그라미) */
+.slider-nav-btn {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
+  width: 44px; height: 44px;
   border-radius: 50%;
-  background: var(--card); /* 테마 배경색 */
-  border: 1px solid var(--border);
-  color: var(--text);
-  box-shadow: var(--shadow);
+  background: var(--card, #fff);
+  border: 1px solid #eee;
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   cursor: pointer;
   z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   transition: all 0.2s;
+  font-size: 24px; line-height: 1;
 }
-
-.nav-btn:hover {
-  background: var(--primary);
+.slider-nav-btn:hover {
+  background: var(--primary, #ff2f6e);
   color: #fff;
-  border-color: var(--primary);
-  transform: translateY(-50%) scale(1.1); /* 살짝 커지는 효과 */
+  border-color: var(--primary, #ff2f6e);
+  transform: translateY(-50%) scale(1.1);
 }
+.slider-nav-btn.left { left: -22px; }
+.slider-nav-btn.right { right: -22px; }
 
-/* 버튼 위치 조정 */
-.nav-btn.left { left: -22px; }
-.nav-btn.right { right: -22px; }
-
-.chevron {
-  font-size: 24px;
-  font-weight: bold;
-  line-height: 1;
+/* 반응형 */
+@media (max-width: 900px) {
+  .review-scroll-container { grid-auto-columns: calc(50% - 8px); } /* 태블릿: 2개씩 */
 }
-
-/* 5. 반응형 대응 (화면 크기에 따라 열 개수 조절) */
-@media (max-width: 768px) {
-  .review-scroll-container {
-    /* 태블릿: 2열 2행으로 변경 */
-    grid-auto-columns: calc(50% - 8px); 
-  }
-}
-
-@media (max-width: 480px) {
-  .review-scroll-container {
-    /* 모바일: 1줄로 변경하고 85% 너비로 다음 카드 살짝 보이게 */
-    grid-template-rows: repeat(1, 1fr); 
-    grid-auto-columns: 85%;
-    padding: 0 10px;
+@media (max-width: 600px) {
+  .review-scroll-container { 
+    grid-template-rows: 1fr; /* 모바일: 1줄 */
+    grid-auto-columns: 85%; /* 옆에꺼 살짝 보이게 */
   }
 }
 </style>

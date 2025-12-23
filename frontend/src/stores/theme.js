@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 
 export const useThemeStore = defineStore('theme', {
   state: () => ({
-    theme: localStorage.getItem('theme') || 'netflix', // 'netflix' | 'wavve'
+    theme: localStorage.getItem('theme') ||'blackred' | 'blue'
   }),
 
   actions: {
@@ -31,7 +31,7 @@ export const useThemeStore = defineStore('theme', {
     },
 
     async toggleTheme() {
-      const next = this.theme === 'netflix' ? 'wavve' : 'netflix'
+      const next = this.theme === 'blackred' ? 'blue' : 'blackred'
       await this.setTheme(next)
     },
 

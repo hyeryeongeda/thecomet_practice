@@ -51,16 +51,11 @@
 
         <div v-if="chatLoading" class="msg-row assistant">
           <div class="bot-icon">🤖</div>
-          <div class="bubble loading">영화 3편을 엄선하고 있습니다... 🎬</div>
+          <div class="bubble loading">영화 데이터를 분석하고 있습니다...</div>
         </div>
 
         <div v-if="currentChat.movies && currentChat.movies.length > 0" class="movie-results">
-          <div 
-            v-for="movie in currentChat.movies" 
-            :key="movie.tmdb_id" 
-            class="horizontal-card" 
-            @click="goMovie(movie.tmdb_id)"
-          >
+          <div v-for="movie in currentChat.movies.slice(0, 3)" :key="movie.tmdb_id" class="horizontal-card" @click="goMovie(movie.tmdb_id)">
             <div class="poster-box">
               <img :src="posterUrl(movie.poster_path)" alt="poster">
             </div>
@@ -71,10 +66,7 @@
               </div>
               <div class="ai-reason-box">
                 <div class="check-icon">✓</div>
-                <div class="reason-content">
-                  <span class="reason-label">AI 추천 내용</span>
-                  <p class="reason-text">{{ movie.ai_reason || '당신의 취향에 딱 맞는 영화입니다.' }}</p>
-                </div>
+                <p class="reason-text">{{ movie.ai_reason || '당신의 취향에 맞는 추천 영화입니다.' }}</p>
               </div>
             </div>
           </div>
@@ -92,8 +84,8 @@ import { postTasteChat } from '@/api/comet'
 const router = useRouter()
 const chatWindow = ref(null)
 
-const allChats = ref([])
-const currentChatIndex = ref(0)
+const allChats = ref([]) 
+const currentChatIndex = ref(0) 
 const chatInput = ref('')
 const chatLoading = ref(false)
 
@@ -118,7 +110,7 @@ function createNewChat() {
   const newChat = {
     id: Date.now(),
     title: '',
-    messages: [{ role: 'assistant', content: '안녕하세요! 취향에 딱 맞는 영화 3가지를 추천해 드릴게요.' }],
+    messages: [{ role: 'assistant', content: '안녕하세요! 원하시는 영화의 분위기나 특징을 말씀해 주세요.' }],
     movies: []
   }
   allChats.value.unshift(newChat)
@@ -157,8 +149,7 @@ async function sendChat() {
 
     target.messages.push({ role: 'assistant', content: res.answer })
     
-    // 🔥 백엔드 결과가 많더라도 프론트에서 3개로 제한 (slice)
-    const rawMovies = (res.movies || []).slice(0, 3) 
+    const rawMovies = res.movies || []
     const reasons = res.recommended_reasons || {}
     
     target.movies = rawMovies.map(m => ({
@@ -168,7 +159,7 @@ async function sendChat() {
     }))
 
   } catch (e) {
-    target.messages.push({ role: 'assistant', content: '서버 통신 중 오류가 발생했습니다.' })
+    target.messages.push({ role: 'assistant', content: '죄송합니다. 서버와 통신 중 오류가 발생했습니다.' })
   } finally {
     chatLoading.value = false
     await scrollToBottom()
@@ -184,56 +175,57 @@ const scrollToBottom = async () => {
 </script>
 
 <style scoped>
+/* 🎨 모든 레이아웃 수치는 유지하고 색상만 변수로 교체 */
 .ai-recommend-layout { display: flex; gap: 20px; max-width: 1100px; margin: 0 auto; height: 750px; }
 
-/* 사이드바 */
-.chat-sidebar { width: 220px; border: 1px solid #eee; border-radius: 16px; padding: 15px; display: flex; flex-direction: column; background: #fff; }
+/* 왼쪽 사이드바 */
+.chat-sidebar { width: 220px; border: 1px solid var(--border); border-radius: 16px; padding: 15px; display: flex; flex-direction: column; background: var(--card); }
 .sidebar-top { margin-bottom: 20px; }
-.sidebar-title { font-size: 16px; font-weight: 900; margin-bottom: 12px; }
-.new-chat-btn { width: 100%; padding: 10px; background: #111; color: #fff; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+.sidebar-title { font-size: 16px; font-weight: 900; margin-bottom: 12px; color: var(--text); }
+.new-chat-btn { width: 100%; padding: 10px; background: var(--primary); color: #fff; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+.new-chat-btn:hover { opacity: 0.8; }
 
 .chat-history-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-.history-item { padding: 10px; border-radius: 8px; border: 1px solid #f0f0f0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-.history-item.active { border-color: #111; background: #f9f9f9; font-weight: bold; }
-.history-text { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
-.delete-chat { border: none; background: none; color: #ccc; cursor: pointer; font-size: 16px; }
+.history-item { padding: 10px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: var(--bg); }
+.history-item.active { border-color: var(--primary); background: var(--primary-weak); font-weight: bold; }
+.history-text { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; color: var(--text); }
+.delete-chat { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 16px; }
 
-/* 메인 패널 */
+/* 메인 채팅 판넬 */
 .main-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; }
 
-.input-section { background: #fff; border: 2px solid #111; border-radius: 16px; padding: 18px; }
+.input-section { background: var(--card); border: 2px solid var(--primary); border-radius: 16px; padding: 18px; }
 .input-container { display: flex; gap: 12px; }
-textarea { flex: 1; border: none; outline: none; resize: none; height: 60px; font-size: 14px; font-weight: 600; line-height: 1.5; }
-.send-btn { background: #111; color: #fff; border: none; padding: 0 18px; border-radius: 10px; cursor: pointer; font-weight: 800; }
+textarea { flex: 1; border: none; outline: none; resize: none; height: 60px; font-size: 14px; font-weight: 600; line-height: 1.5; background: transparent; color: var(--text); }
+.send-btn { background: var(--primary); color: #fff; border: none; padding: 0 18px; border-radius: 10px; cursor: pointer; font-weight: 800; }
+.send-btn:disabled { opacity: 0.3; }
 
 .quick-tags { display: flex; gap: 8px; margin-top: 12px; }
-.tag-btn { padding: 6px 12px; border-radius: 15px; border: 1px solid #eee; background: #f5f5f5; font-size: 12px; font-weight: 800; cursor: pointer; }
+.tag-btn { padding: 6px 12px; border-radius: 15px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px; font-weight: 800; cursor: pointer; }
 
-/* 채팅창 */
-.chat-display { flex: 1; background: #fff; border: 1px solid #eee; border-radius: 16px; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+/* 채팅 출력 영역 */
+.chat-display { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
 .msg-row { display: flex; gap: 10px; align-items: flex-start; }
 .msg-row.user { justify-content: flex-end; }
-.bot-icon { font-size: 24px; padding: 4px; border-radius: 50%; border: 1px solid #eee; background: #f9f9f9; }
+.bot-icon { font-size: 24px; padding: 4px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg); }
 .bubble { max-width: 75%; padding: 12px 16px; border-radius: 14px; font-size: 14px; font-weight: 600; line-height: 1.5; }
-.assistant .bubble { background: #f0f0f0; border-top-left-radius: 2px; }
-.user .bubble { background: #111; color: #fff; border-top-right-radius: 2px; }
+.assistant .bubble { background: var(--bg); border: 1px solid var(--border); color: var(--text); }
+.user .bubble { background: var(--primary); color: #fff; }
 
-/* 가로형 영화 카드 (3편 레이아웃) */
+/* 가로형 영화 카드 레이아웃 */
 .movie-results { display: flex; flex-direction: column; gap: 15px; padding-left: 45px; }
-.horizontal-card { display: flex; gap: 15px; padding: 12px; border: 1px solid #ddd; border-radius: 14px; background: #fff; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-.horizontal-card:hover { transform: scale(1.01); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
-.poster-box { width: 70px; aspect-ratio: 2/3; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.horizontal-card { display: flex; gap: 15px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); box-shadow: 0 4px 6px rgba(0,0,0,0.02); cursor: pointer; transition: 0.2s; }
+.horizontal-card:hover { transform: scale(1.01); border-color: var(--primary); }
+.poster-box { width: 70px; aspect-ratio: 2/3; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: #000; }
 .poster-box img { width: 100%; height: 100%; object-fit: cover; }
 
 .info-box { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
 .info-top { display: flex; justify-content: space-between; align-items: flex-start; }
-.m-title { font-size: 15px; font-weight: 900; margin: 0; }
+.m-title { font-size: 15px; font-weight: 900; margin: 0; color: var(--text); }
 .stars { font-size: 13px; font-weight: 800; color: #f1c40f; }
 
-/* AI 추천 이유 박스 (스케치 스타일) */
-.ai-reason-box { background: #666; color: #fff; border-radius: 10px; padding: 10px 14px; display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; }
-.check-icon { background: #444; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; display: grid; place-items: center; flex-shrink: 0; margin-top: 2px; }
-.reason-content { flex: 1; }
-.reason-label { font-size: 11px; font-weight: 800; opacity: 0.8; display: block; margin-bottom: 2px; }
-.reason-text { font-size: 12px; font-weight: 600; margin: 0; line-height: 1.4; }
+/* AI 추천 이유 박스 */
+.ai-reason-box { background: var(--nav-bg); color: var(--text); border: 1px solid var(--nav-border); border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.check-icon { background: var(--primary); color: #fff; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; display: grid; place-items: center; }
+.reason-text { font-size: 12px; font-weight: 600; margin: 0; opacity: 0.9; }
 </style>

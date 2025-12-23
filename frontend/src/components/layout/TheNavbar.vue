@@ -1,6 +1,5 @@
 <template>
   <header :class="['nav-container', { 'transparent': isDetailPage }]">
-    
     <div class="nav-inner">
       <div class="left">
         <RouterLink to="/" class="brand">
@@ -25,10 +24,28 @@
           @keyup.enter="goSearch"
         />
 
-        <template v-if="isLoggedIn">
-          <RouterLink :to="{ name: 'mypage' }" class="btn ghost">마이페이지</RouterLink>
-          <button class="btn" @click="onLogout">로그아웃</button>
-        </template>
+        <div v-if="isLoggedIn" class="user-menu-wrapper">
+          <div class="user-icon-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="user-icon">
+              <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+            </svg>
+          </div>
+
+          <div class="dropdown-menu">
+            <RouterLink :to="{ name: 'mypage' }" class="dropdown-item">마이페이지</RouterLink>
+            <div class="dropdown-item" @click="onLogout">로그아웃</div>
+            
+            <div class="dropdown-item theme-item">
+              <span>테마변경</span>
+              <span class="arrow"> > </span>
+              
+              <div class="sub-dropdown">
+                <div class="dropdown-item" @click="changeTheme('blackred')">Black Red</div>
+                <div class="dropdown-item" @click="changeTheme('blue')">Blue</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <template v-else>
           <RouterLink to="/login" class="btn ghost">로그인</RouterLink>
@@ -41,20 +58,19 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router' // useRoute 추가
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 import logoUrl from '@/assets/comet_logo.png'
 
 const router = useRouter()
-const route = useRoute() // 현재 주소 정보 가져오기
+const route = useRoute()
 const auth = useAuthStore()
+const themeStore = useThemeStore()
 
 const q = ref('')
 
-// [핵심] 현재 페이지가 영화 상세페이지인지 확인
 const isDetailPage = computed(() => route.name === 'movie-detail')
-
-// 로그인 상태 체크 (스토어 상태가 반응형으로 동작하도록)
 const isLoggedIn = computed(() => auth.isLoggedIn || auth.isAuthenticated) 
 
 function goSearch() {
@@ -66,93 +82,168 @@ function goSearch() {
 
 function onLogout() {
   auth.logout()
-  router.push('/') // 로그아웃 후 홈으로 이동
+  router.push('/')
+}
+
+// 🔥 테마 직접 변경 함수
+function changeTheme(themeName) {
+  themeStore.setTheme(themeName)
 }
 </script>
 
 <style scoped>
-/* 1. 네비게이션 컨테이너 (배경 및 위치) */
 .nav-container {
-  position: fixed; /* 상단 고정 */
+  position: fixed;
   top: 0; left: 0; right: 0;
-  width: 100%;
-  height: 60px; /* 높이 고정 */
-  background: white; /* 기본 배경 */
-  border-bottom: 1px solid #eee;
-  z-index: 9999; /* 항상 맨 위에 */
-  transition: background-color 0.3s, border-color 0.3s;
+  width: 100%; height: 60px;
+  /* 테마 변수 적용 (투명도 50%) */
+  background: var(--nav-bg); 
+  backdrop-filter: blur(10px); /* 배경 흐림 효과를 주면 훨씬 고급스러워집니다 */
+  border-bottom: 1px solid var(--nav-border);
+  z-index: 9999;
+  transition: all 0.3s ease;
 }
 
-/* 2. 내부 컨텐츠 정렬 (1100px 제한) */
+/* 브랜드 텍스트 및 메뉴 링크 색상 */
+.brand-text, .link {
+  color: var(--nav-text);
+  transition: color 0.3s;
+}
+
+/* [블랙레드 포인트] 마우스를 올리거나 활성화된 메뉴는 레드로 강조 */
+.link:hover, .link.router-link-active {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+/* 사람 아이콘 색상 */
+.user-icon {
+  width: 28px; height: 28px;
+  color: var(--nav-text); /* 아이콘도 네비 텍스트 색상을 따라갑니다 */
+}
+
 .nav-inner {
   max-width: 1100px;
-  margin: 0 auto; /* 가운데 정렬 */
+  margin: 0 auto;
   height: 100%;
-  padding: 0 20px; /* 좌우 여백 */
+  padding: 0 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-/* 3. 투명 모드 스타일 (상세페이지용) */
+.user-menu-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 60px;
+  cursor: pointer;
+}
+
+.user-icon { width: 28px; height: 28px; color: #444; }
+
+/* 호버 시 드롭다운 표시 */
+.user-menu-wrapper:hover .dropdown-menu { display: block; }
+/* 검색창 스타일 조정 */
+.search {
+  width: 200px; padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  transition: all 0.2s;
+}
+
+/* 드롭다운 메뉴 스타일 */
+.dropdown-menu {
+  background: var(--card); /* 테마별 카드 배경색 사용 */
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.dropdown-item {
+  color: var(--text);
+}
+
+.dropdown-item:hover {
+  background: var(--primary-weak);
+  color: var(--primary); /* 호버 시 레드 포인트 */
+}
+
+/* 상세페이지 투명 모드 (이 기능은 유지하되 변수와 조화롭게) */
 .nav-container.transparent {
-  background-color: transparent !important;
+  background: transparent !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
-
-/* 투명 모드일 때 글자색 변경 (흰색) */
-.nav-container.transparent .link,
-.nav-container.transparent .brand-text,
-.nav-container.transparent .btn.ghost {
-  color: rgba(255, 255, 255, 0.9);
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 55px;
+  right: 0;
+  width: 150px;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  overflow: visible; /* 하위 메뉴가 보여야 하므로 visible */
+  z-index: 10000;
 }
 
-.nav-container.transparent .link:hover,
-.nav-container.transparent .link.router-link-active {
-  color: #fff;
-  font-weight: 800;
+.dropdown-item {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+  text-decoration: none;
+  transition: background 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
 }
 
-/* 투명 모드일 때 검색창 반투명 처리 */
-.nav-container.transparent .search {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
-}
-.nav-container.transparent .search::placeholder {
-  color: rgba(255, 255, 255, 0.7);
+.dropdown-item:hover {
+  background: #f5f5f5;
+  color: #000;
 }
 
+/* 🔥 테마변경 서브 메뉴 스타일 */
+.theme-item {
+  position: relative;
+}
 
-/* --- 기존 스타일 유지 --- */
+.arrow {
+  font-size: 10px;
+  color: #aaa;
+}
+
+/* 테마변경에 마우스 올리면 서브 드롭다운 표시 */
+.theme-item:hover .sub-dropdown {
+  display: block;
+}
+
+.sub-dropdown {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: -150px; /* 메인 메뉴의 왼쪽에 위치 (오른쪽 공간 확보) */
+  width: 150px;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  box-shadow: -5px 5px 20px rgba(0,0,0,0.1);
+}
+
+/* 검색창 및 투명 모드 스타일 (기본 유지) */
 .left { display: flex; align-items: center; gap: 20px; }
 .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
 .logo { width: 28px; height: 28px; object-fit: contain; }
 .brand-text { font-weight: 800; font-size: 18px; }
-
 .menu { display: flex; gap: 16px; }
-.link { text-decoration: none; color: #444; font-size: 15px; font-weight: 600; transition: color 0.2s; }
-.link.router-link-active { color: #000; font-weight: 800; }
-
+.link { text-decoration: none; color: #444; font-size: 15px; font-weight: 600; }
 .right { display: flex; align-items: center; gap: 10px; }
-.search {
-  width: 200px; padding: 7px 12px;
-  border: 1px solid #ddd; border-radius: 6px;
-  background: #f5f5f5; outline: none; font-size: 13px;
-  transition: all 0.2s;
-}
-.search:focus { background: white; border-color: #333; }
+.search { width: 200px; padding: 7px 12px; border: 1px solid #ddd; border-radius: 6px; background: #f5f5f5; outline: none; font-size: 13px; }
 
-.btn {
-  padding: 7px 12px; border-radius: 6px;
-  text-decoration: none; cursor: pointer; font-size: 13px; font-weight: 700;
-  border: 1px solid #333; background: #333; color: #fff;
-  transition: opacity 0.2s;
-}
-.btn:hover { opacity: 0.8; }
-
-.btn.ghost {
-  background: transparent; border: 1px solid transparent; color: #555;
-}
-.btn.ghost:hover { color: #111; background: rgba(0,0,0,0.05); }
+.btn { padding: 7px 12px; border-radius: 6px; font-size: 13px; font-weight: 700; border: 1px solid #333; background: #333; color: #fff; cursor: pointer; }
+.btn.ghost { background: transparent; border: 1px solid transparent; color: #555; }
 </style>

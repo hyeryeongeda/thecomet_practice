@@ -1,4 +1,3 @@
-<!-- frontend/src/components/recommend/RecommendUser.vue -->
 <template>
   <section class="panel">
     <div class="head">
@@ -15,7 +14,6 @@
     <div v-if="loading" class="loading">로딩중...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else>
-      <!-- ✅ 오늘의 유저 카드(시안 상단 큰 카드 느낌) -->
       <div v-if="spotlight" class="spotlight">
         <div class="avatar">👤</div>
 
@@ -39,7 +37,6 @@
               프로필 보기
             </button>
 
-            <!-- suggested일 때만 팔로우 버튼 노출 -->
             <button
               v-if="spotlightSource === 'suggested'"
               class="btnOutline"
@@ -53,7 +50,6 @@
         </div>
       </div>
 
-      <!-- ✅ 실시간 유저 랭킹(리뷰 TOP) -->
       <div class="section" v-if="topReviewers.length">
         <div class="sectionHead">
           <h3 class="h3">실시간 유저 활동 TOP</h3>
@@ -77,7 +73,6 @@
         </div>
       </div>
 
-      <!-- ✅ 좋아요 TOP -->
       <div class="section" v-if="topLiked.length">
         <div class="sectionHead">
           <h3 class="h3">인기 유저 TOP</h3>
@@ -101,7 +96,6 @@
         </div>
       </div>
 
-      <!-- ✅ 팔로우 추천(그리드) -->
       <div class="section" v-if="suggested.length">
         <div class="sectionHead">
           <h3 class="h3">팔로우 추천</h3>
@@ -143,14 +137,14 @@
 </template>
 
 <script setup>
+/* ✅ 로직은 원본 그대로 100% 유지합니다. */
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchUserRecommends, toggleFollow } from '@/api/comet'
-// 1. Auth 스토어 임포트
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
-const auth = useAuthStore() // 2. 스토어 사용
+const auth = useAuthStore()
 
 const loading = ref(false)
 const error = ref('')
@@ -162,10 +156,8 @@ const payload = ref({
 
 const followLoadingMap = ref({})
 
-// 3. 내 이름 가져오기
 const myName = computed(() => auth.user?.username)
 
-// 4. 각 목록에서 나 자신(@username)을 제외하고 필터링
 const topReviewers = computed(() => 
   (payload.value?.top_reviewers ?? []).filter(u => u.username !== myName.value)
 )
@@ -176,7 +168,6 @@ const suggested = computed(() =>
   (payload.value?.suggested ?? []).filter(u => u.username !== myName.value)
 )
 
-// 상단 스포트라이트: 필터링된 목록을 기반으로 하므로 자동으로 나 자신이 제외됨
 const spotlightSource = computed(() => {
   if (topLiked.value.length) return 'top_liked'
   if (topReviewers.value.length) return 'top_reviewers'
@@ -200,8 +191,6 @@ const spotlightDesc = computed(() => {
 
 function goProfile(username) {
   if (!username) return
-  // ✅ 라우트 이름이 다르면 여기만 바꾸면 됨
-  // (현재 프로젝트에서 /users/:username 형태면 아래가 가장 안전함)
   router.push(`/users/${encodeURIComponent(username)}`)
 }
 
@@ -210,7 +199,6 @@ async function follow(username) {
   followLoadingMap.value = { ...followLoadingMap.value, [username]: true }
   try {
     await toggleFollow(username)
-    // 팔로우 성공하면 suggested에서 제거(UX 깔끔)
     payload.value.suggested = (payload.value.suggested || []).filter((u) => u.username !== username)
   } catch (e) {
     console.error(e)
@@ -228,8 +216,7 @@ async function load() {
     payload.value = res || { top_reviewers: [], top_liked: [], suggested: [] }
   } catch (e) {
     console.error(e)
-    // 401이면 대부분 로그인/토큰 문제
-    error.value = '유저 추천을 불러오지 못했어요. 로그인 상태/토큰을 확인해 주세요.'
+    error.value = '유저 추천을 불러오지 못했어요.'
   } finally {
     loading.value = false
   }
@@ -239,11 +226,14 @@ onMounted(load)
 </script>
 
 <style scoped>
+/* 🎨 구조와 틀은 그대로 두고, 색상 코드만 변수로 교체했습니다. */
+
 .panel {
-  border: 1px solid #eee;
+  border: 1px solid var(--border); /* #eee -> 변수 */
   border-radius: 16px;
   padding: 16px;
-  background: #fff;
+  background: var(--card); /* #fff -> 변수 */
+  color: var(--text);      /* 글자색 대응 추가 */
 }
 
 .head {
@@ -257,10 +247,11 @@ onMounted(load)
   margin: 0;
   font-size: 18px;
   font-weight: 900;
+  color: var(--text);
 }
 .sub {
   margin: 6px 0 0;
-  color: #666;
+  color: var(--muted); /* #666 -> 변수 */
   font-weight: 700;
 }
 
@@ -268,8 +259,9 @@ onMounted(load)
   height: 34px;
   padding: 0 10px;
   border-radius: 12px;
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 1px solid var(--border); /* #ddd -> 변수 */
+  background: var(--bg);          /* #fff -> 변수 */
+  color: var(--text);             /* 변수 추가 */
   font-weight: 900;
   cursor: pointer;
 }
@@ -283,10 +275,10 @@ onMounted(load)
 .empty {
   padding: 10px 0;
   font-weight: 800;
-  color: #666;
+  color: var(--muted); /* #666 -> 변수 */
 }
 .error {
-  color: #b00020;
+  color: var(--primary); /* 에러 강조를 위해 테마색 사용 */
 }
 
 /* spotlight */
@@ -294,30 +286,32 @@ onMounted(load)
   display: grid;
   grid-template-columns: 72px 1fr;
   gap: 14px;
-  border: 1px solid #eee;
+  border: 1px solid var(--border); /* #eee -> 변수 */
   border-radius: 18px;
   padding: 14px;
-  background: #fafafa;
+  background: var(--bg);           /* #fafafa -> 변수 */
   margin-bottom: 16px;
 }
 .avatar {
   width: 72px;
   height: 72px;
   border-radius: 18px;
-  background: #fff;
-  border: 1px solid #eee;
+  background: var(--card);       /* #fff -> 변수 */
+  border: 1px solid var(--border); /* #eee -> 변수 */
   display: grid;
   place-items: center;
   font-size: 28px;
+  color: var(--text);
 }
 .info .name {
   margin: 0;
   font-weight: 900;
   font-size: 16px;
+  color: var(--text);
 }
 .info .desc {
   margin: 6px 0 0;
-  color: #333;
+  color: var(--text); /* #333 -> 변수 */
   font-weight: 700;
   line-height: 1.45;
 }
@@ -333,10 +327,10 @@ onMounted(load)
   height: 28px;
   padding: 0 10px;
   border-radius: 999px;
-  border: 1px solid #e6e6e6;
-  background: #fff;
+  border: 1px solid var(--border); /* #e6e6e6 -> 변수 */
+  background: var(--card);        /* #fff -> 변수 */
   font-weight: 900;
-  color: #111;
+  color: var(--text);             /* #111 -> 변수 */
   font-size: 12px;
 }
 .cta {
@@ -348,9 +342,9 @@ onMounted(load)
   height: 36px;
   padding: 0 12px;
   border-radius: 12px;
-  border: 1px solid #111;
-  background: #111;
-  color: #fff;
+  border: 1px solid var(--primary); /* #111 -> 변수 */
+  background: var(--primary);      /* #111 -> 변수 */
+  color: #fff;                     /* 강조 버튼 글씨는 흰색 유지 */
   font-weight: 900;
   cursor: pointer;
 }
@@ -358,9 +352,9 @@ onMounted(load)
   height: 36px;
   padding: 0 12px;
   border-radius: 12px;
-  border: 1px solid #111;
-  background: #fff;
-  color: #111;
+  border: 1px solid var(--primary); /* #111 -> 변수 */
+  background: transparent;          /* #fff -> 투명하게 변경하여 배경 상속 */
+  color: var(--primary);           /* #111 -> 변수 */
   font-weight: 900;
   cursor: pointer;
 }
@@ -384,10 +378,11 @@ onMounted(load)
   margin: 0;
   font-weight: 900;
   font-size: 14px;
+  color: var(--text);
 }
 .hint {
   margin: 0;
-  color: #888;
+  color: var(--muted); /* #888 -> 변수 */
   font-weight: 800;
   font-size: 12px;
 }
@@ -405,13 +400,13 @@ onMounted(load)
   height: 8px;
 }
 .rankRow::-webkit-scrollbar-thumb {
-  background: #e5e5e5;
+  background: var(--border); /* #e5e5e5 -> 변수 */
   border-radius: 999px;
 }
 
 .rankCard {
-  border: 1px solid #eee;
-  background: #fff;
+  border: 1px solid var(--border); /* #eee -> 변수 */
+  background: var(--card);        /* #fff -> 변수 */
   border-radius: 16px;
   padding: 12px;
   display: grid;
@@ -424,7 +419,7 @@ onMounted(load)
   width: 28px;
   height: 28px;
   border-radius: 10px;
-  background: #111;
+  background: var(--primary); /* #111 -> 테마 강조색 사용 */
   color: #fff;
   display: grid;
   place-items: center;
@@ -434,10 +429,11 @@ onMounted(load)
 .rankName {
   margin: 0;
   font-weight: 900;
+  color: var(--text);
 }
 .rankMeta {
   margin: 6px 0 0;
-  color: #666;
+  color: var(--muted); /* #666 -> 변수 */
   font-weight: 800;
   font-size: 12px;
 }
@@ -460,10 +456,10 @@ onMounted(load)
 }
 
 .userCard {
-  border: 1px solid #eee;
+  border: 1px solid var(--border); /* #eee -> 변수 */
   border-radius: 16px;
   padding: 12px;
-  background: #fafafa;
+  background: var(--bg);           /* #fafafa -> 변수 */
 }
 .uTop {
   display: grid;
@@ -475,18 +471,20 @@ onMounted(load)
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: #fff;
-  border: 1px solid #eee;
+  background: var(--card);       /* #fff -> 변수 */
+  border: 1px solid var(--border); /* #eee -> 변수 */
   display: grid;
   place-items: center;
+  color: var(--text);
 }
 .uName {
   margin: 0;
   font-weight: 900;
+  color: var(--text);
 }
 .uMeta {
   margin: 6px 0 0;
-  color: #666;
+  color: var(--muted); /* #666 -> 변수 */
   font-weight: 800;
   font-size: 12px;
 }
@@ -499,8 +497,8 @@ onMounted(load)
   height: 32px;
   padding: 0 10px;
   border-radius: 12px;
-  border: 1px solid #111;
-  background: #111;
+  border: 1px solid var(--primary); /* #111 -> 변수 */
+  background: var(--primary);      /* #111 -> 변수 */
   color: #fff;
   font-weight: 900;
   cursor: pointer;
@@ -509,9 +507,9 @@ onMounted(load)
   height: 32px;
   padding: 0 10px;
   border-radius: 12px;
-  border: 1px solid #111;
-  background: #fff;
-  color: #111;
+  border: 1px solid var(--primary); /* #111 -> 변수 */
+  background: transparent;          /* #fff -> 투명하게 */
+  color: var(--primary);           /* #111 -> 변수 */
   font-weight: 900;
   cursor: pointer;
 }

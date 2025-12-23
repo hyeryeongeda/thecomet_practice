@@ -7,7 +7,10 @@
     <div v-else>
       <div class="card profile-card">
         <div class="row">
-          <img class="avatar" :src="profileSrc" alt="profile" />
+          <div class="avatar-container">
+              <img v-if="user.profile_image" :src="profileSrc" class="avatar">
+              <div v-else class="avatar u-icon">👤</div>
+          </div>
           <div class="info">
             <div class="name">{{ user.username }}</div>
             <div class="muted">{{ user.email }}</div>
@@ -43,74 +46,54 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router' // useRouter 추가
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { fetchUserProfile, toggleFollow } from '@/api/comet'
 
 const route = useRoute()
-const router = useRouter() // router 인스턴스 생성
+const router = useRouter()
 const auth = useAuthStore()
 
 const loading = ref(true)
 const user = ref({})
-const userMovies = ref([]) // 초기값 빈 배열로 선언
+const userMovies = ref([])
 const isFollowing = ref(false)
 const fallback = 'https://placehold.co/96x96?text=%F0%9F%91%A4'
 
-// ✅ 백엔드 주소로 바꿔주세요 (예: Django면 보통 http://127.0.0.1:8000)
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
+/*  profileSrc 로직 */
 const profileSrc = computed(() => {
   const p = user.value?.profile_image
   if (!p) return fallback
   if (typeof p !== 'string') return fallback
   if (p.startsWith('http')) return p
 
-  // "/media/..." 같이 상대경로면 백엔드 주소를 붙여줌
-  if (p.startsWith('/')) return `${API_BASE}${p}`
+  const SERVER_URL = 'http://127.0.0.1:8000' 
 
-  // "media/..." 같이 슬래시 없는 경우도 방어
-  return `${API_BASE}/${p}`
+  if (p.startsWith('/')) return `${SERVER_URL}${p}`
+  return `${SERVER_URL}/${p}`
 })
-
-
 
 const username = computed(() => route.params.username || route.params.id)
 
-/**
- * [해결] 팔로우 버튼 노출 로직 수정
- * auth.isAuthenticated가 undefined로 뜰 경우를 대비해 !!를 붙여 확실히 불리언화합니다.
- */
 const canFollow = computed(() => {
   const me = auth.user?.username
   const target = user.value?.username
-  // auth.user가 존재한다면 로그인된 것으로 간주하는 방어 코드 추가
   const isLoggedIn = !!(auth.isAuthenticated || auth.user)
-  
-  console.log("--- 팔로우 버튼 체크 ---")
-  console.log("로그인 여부:", isLoggedIn)
-  console.log("내 이름(me):", me)
-  console.log("상대 이름(target):", target)
-
   if (!isLoggedIn) return false
   if (!target) return false
-  if (me === target) return false // 본인 프로필이면 숨김
+  if (me === target) return false
 
   return true
 })
 
-/**
- * [추가] 포스터 URL 변환 함수
- */
 function posterUrl(path) {
   if (!path) return 'https://placehold.co/342x513?text=No+Poster'
   if (path.startsWith('http')) return path
   return `https://image.tmdb.org/t/p/w342${path}`
 }
 
-/**
- * [추가] 영화 상세 페이지 이동 함수
- */
 function goDetail(tmdbId) {
   router.push({ name: 'movie-detail', params: { tmdbId } })
 }
@@ -120,7 +103,6 @@ async function load() {
   try {
     const data = await fetchUserProfile(username.value)
     user.value = data
-    // 백엔드 응답 필드명 확인 (reviewed_movies 또는 movies)
     userMovies.value = data.reviewed_movies || data.movies || [] 
     isFollowing.value = !!data.is_following
   } catch (err) {
@@ -148,17 +130,17 @@ async function onToggleFollow() {
 }
 
 onMounted(async () => {
-  // Pinia 스토어가 비어있다면 정보를 먼저 채움
   if (!auth.user?.username && auth.fetchMe) {
     await auth.fetchMe()
   }
   await load()
 })
 
-// 유저 페이지 간 이동(user1 -> user2) 시 데이터를 다시 불러오도록 감시
 watch(username, () => {
   load()
 })
+
+
 </script>
 
 <style scoped>
@@ -176,7 +158,21 @@ watch(username, () => {
 }
 
 .row { display: flex; gap: 20px; align-items: center; }
-.avatar { width: 80px; height: 80px; border-radius: 20px; object-fit: cover; border: 1px solid var(--border); }
+
+/* ✅ 아바타 스타일 정렬 */
+.avatar { 
+  width: 100px; 
+  height: 100px; 
+  border-radius: 50%; 
+  object-fit: cover; 
+  border: 1px solid var(--border); 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+}
+.u-icon { font-size: 40px; color: #ccc; }
+
 .info .name { font-weight: 1000; font-size: 22px; }
 
 .btn {
@@ -188,9 +184,10 @@ watch(username, () => {
   cursor: pointer;
   font-weight: 1000;
   transition: background 0.2s;
+  color: var(--text);
 }
 .btn:hover {
-  background: #eee;
+  background: var(--primary-weak);
 }
 
 /* 영화 그리드 스타일 */

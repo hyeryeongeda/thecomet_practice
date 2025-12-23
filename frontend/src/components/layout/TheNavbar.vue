@@ -42,6 +42,10 @@
               <div class="sub-dropdown">
                 <div class="dropdown-item" @click="changeTheme('blackred')">Black Red</div>
                 <div class="dropdown-item" @click="changeTheme('blue')">Blue</div>
+                <div class="dropdown-item" @click="changeTheme('midnight')">Midnight Gold</div>
+                <div class="dropdown-item" @click="changeTheme('purple')">Cyber Purple</div>
+                <div class="dropdown-item" @click="changeTheme('forest')">Forest Green</div>
+                <div class="dropdown-item" @click="changeTheme('sunset')">Sunset Orange</div>
               </div>
             </div>
           </div>
@@ -85,41 +89,22 @@ function onLogout() {
   router.push('/')
 }
 
-// 🔥 테마 직접 변경 함수
 function changeTheme(themeName) {
   themeStore.setTheme(themeName)
 }
 </script>
 
 <style scoped>
+/* 네비게이션 컨테이너 */
 .nav-container {
   position: fixed;
   top: 0; left: 0; right: 0;
   width: 100%; height: 60px;
-  /* 테마 변수 적용 (투명도 50%) */
   background: var(--nav-bg); 
-  backdrop-filter: blur(10px); /* 배경 흐림 효과를 주면 훨씬 고급스러워집니다 */
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--nav-border);
   z-index: 9999;
   transition: all 0.3s ease;
-}
-
-/* 브랜드 텍스트 및 메뉴 링크 색상 */
-.brand-text, .link {
-  color: var(--nav-text);
-  transition: color 0.3s;
-}
-
-/* [블랙레드 포인트] 마우스를 올리거나 활성화된 메뉴는 레드로 강조 */
-.link:hover, .link.router-link-active {
-  color: var(--primary);
-  font-weight: 800;
-}
-
-/* 사람 아이콘 색상 */
-.user-icon {
-  width: 28px; height: 28px;
-  color: var(--nav-text); /* 아이콘도 네비 텍스트 색상을 따라갑니다 */
 }
 
 .nav-inner {
@@ -132,6 +117,21 @@ function changeTheme(themeName) {
   align-items: center;
 }
 
+/* 브랜드 및 링크 색상 */
+.brand-text, .link {
+  color: var(--nav-text);
+  transition: color 0.3s;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.link:hover, .link.router-link-active {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+/* 유저 아이콘 */
 .user-menu-wrapper {
   position: relative;
   display: flex;
@@ -140,11 +140,15 @@ function changeTheme(themeName) {
   cursor: pointer;
 }
 
-.user-icon { width: 28px; height: 28px; color: #444; }
+.user-icon {
+  width: 28px; height: 28px;
+  color: var(--nav-text);
+  transition: color 0.3s;
+}
 
-/* 호버 시 드롭다운 표시 */
 .user-menu-wrapper:hover .dropdown-menu { display: block; }
-/* 검색창 스타일 조정 */
+
+/* 검색창 */
 .search {
   width: 200px; padding: 7px 12px;
   border: 1px solid var(--border);
@@ -153,47 +157,32 @@ function changeTheme(themeName) {
   color: var(--text);
   outline: none;
   transition: all 0.2s;
+  font-size: 13px;
 }
 
-/* 드롭다운 메뉴 스타일 */
-.dropdown-menu {
-  background: var(--card); /* 테마별 카드 배경색 사용 */
+/* 드롭다운 공통 스타일 (테마 변수 적용) */
+.dropdown-menu, .sub-dropdown {
+  background: var(--card); 
   border: 1px solid var(--border);
-  color: var(--text);
-}
-.dropdown-item {
-  color: var(--text);
-}
-
-.dropdown-item:hover {
-  background: var(--primary-weak);
-  color: var(--primary); /* 호버 시 레드 포인트 */
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  z-index: 10000;
 }
 
-/* 상세페이지 투명 모드 (이 기능은 유지하되 변수와 조화롭게) */
-.nav-container.transparent {
-  background: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
 .dropdown-menu {
   display: none;
   position: absolute;
   top: 55px;
   right: 0;
-  width: 150px;
-  background: white;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-  overflow: visible; /* 하위 메뉴가 보여야 하므로 visible */
-  z-index: 10000;
+  width: 160px;
+  overflow: visible;
 }
 
 .dropdown-item {
   padding: 12px 16px;
   font-size: 14px;
   font-weight: 600;
-  color: #444;
+  color: var(--text);
   text-decoration: none;
   transition: background 0.2s;
   display: flex;
@@ -203,47 +192,44 @@ function changeTheme(themeName) {
 }
 
 .dropdown-item:hover {
-  background: #f5f5f5;
-  color: #000;
+  background: var(--primary-weak);
+  color: var(--primary);
 }
 
-/* 🔥 테마변경 서브 메뉴 스타일 */
-.theme-item {
-  position: relative;
-}
-
-.arrow {
-  font-size: 10px;
-  color: #aaa;
-}
-
-/* 테마변경에 마우스 올리면 서브 드롭다운 표시 */
-.theme-item:hover .sub-dropdown {
-  display: block;
-}
+/* 서브 드롭다운 */
+.theme-item { position: relative; }
+.theme-item:hover .sub-dropdown { display: block; }
 
 .sub-dropdown {
   display: none;
   position: absolute;
   top: 0;
-  left: -150px; /* 메인 메뉴의 왼쪽에 위치 (오른쪽 공간 확보) */
-  width: 150px;
-  background: white;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  box-shadow: -5px 5px 20px rgba(0,0,0,0.1);
+  left: -160px; /* 메인 메뉴 왼쪽으로 펼침 */
+  width: 160px;
 }
 
-/* 검색창 및 투명 모드 스타일 (기본 유지) */
+.arrow { font-size: 10px; color: var(--muted); }
+
+/* 투명 모드 스타일 */
+.nav-container.transparent {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 공통 버튼 스타일 */
+.btn {
+  padding: 7px 12px; border-radius: 6px;
+  text-decoration: none; cursor: pointer; font-size: 13px; font-weight: 700;
+  border: 1px solid var(--primary); background: var(--primary); color: #fff;
+}
+.btn.ghost {
+  background: transparent; border: 1px solid transparent; color: var(--nav-text);
+}
+
 .left { display: flex; align-items: center; gap: 20px; }
-.brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: inherit; }
+.brand { display: flex; align-items: center; gap: 8px; text-decoration: none; }
 .logo { width: 28px; height: 28px; object-fit: contain; }
 .brand-text { font-weight: 800; font-size: 18px; }
 .menu { display: flex; gap: 16px; }
-.link { text-decoration: none; color: #444; font-size: 15px; font-weight: 600; }
 .right { display: flex; align-items: center; gap: 10px; }
-.search { width: 200px; padding: 7px 12px; border: 1px solid #ddd; border-radius: 6px; background: #f5f5f5; outline: none; font-size: 13px; }
-
-.btn { padding: 7px 12px; border-radius: 6px; font-size: 13px; font-weight: 700; border: 1px solid #333; background: #333; color: #fff; cursor: pointer; }
-.btn.ghost { background: transparent; border: 1px solid transparent; color: #555; }
 </style>

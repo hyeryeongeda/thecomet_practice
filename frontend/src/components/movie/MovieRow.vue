@@ -66,10 +66,38 @@ function scrollRight() {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--border);
+  background: var(--card);
   cursor: pointer;
   font-size: 18px;
+  color: var(--text);
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: var(--primary);     
+  border-color: var(--primary);
+  color: #ffffff;                  
+  transform: scale(1.1);           
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: var(--primary);     
+  border-color: var(--primary);
+  color: #ffffff;                  
+  transform: scale(1.1);         
+}
+
+.sec-title { margin: 0; font-size: 18px; font-weight: 900; color: var(--text); }
+.more { 
+  border: none; 
+  background: transparent; 
+  cursor: pointer; 
+  color: var(--muted); 
+  font-weight: 900; 
+}
+.more:hover { 
+  text-decoration: underline; 
+  color: var(--primary); 
 }
 
 .rail {

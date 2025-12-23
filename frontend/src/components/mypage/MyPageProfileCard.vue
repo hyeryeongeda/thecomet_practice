@@ -40,25 +40,54 @@ defineEmits(['edit', 'open-follow'])
 </script>
 
 <style scoped>
+/* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */
+
 .profile-card { text-align: center; margin-bottom: 30px; }
 .avatar-area { margin-bottom: 20px; }
-.avatar { width: 100px; height: 100px; background: #eee; border-radius: 50%; margin: 0 auto 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); }
+
+.avatar { 
+  width: 100px; height: 100px; 
+  background: var(--bg); /* #eee -> var(--bg) 테마 배경색 대응 */
+  border-radius: 50%; 
+  margin: 0 auto 10px; 
+  overflow: hidden; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  border: 1px solid var(--border); 
+}
+
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
-.fallback { font-size: 40px; }
+.fallback { font-size: 40px; color: var(--muted); } /* 아이콘 색상 대응 */
 .names { margin-top: 10px; }
 .username { font-size: 24px; font-weight: 900; margin-bottom: 10px; color: var(--text); }
-.btn-edit { padding: 6px 12px; border: 1px solid var(--border); background: var(--card); border-radius: 4px; cursor: pointer; font-size: 13px; color: var(--text); }
+
+.btn-edit { 
+  padding: 6px 12px; 
+  border: 1px solid var(--border); 
+  background: var(--card); 
+  border-radius: 4px; 
+  cursor: pointer; 
+  font-size: 13px; 
+  color: var(--text); 
+  transition: background 0.2s;
+}
+.btn-edit:hover {
+  background: var(--primary-weak); /* 호버 시 테마별 약한 강조색 */
+}
+
 .stats { display: flex; justify-content: center; gap: 20px; color: var(--muted); font-size: 14px; }
 .stats b { color: var(--text); font-weight: 900; margin-left: 4px; }
 
-/* ✅ [추가] 클릭 가능한 느낌을 주기 위한 스타일 */
+/* ✅ 클릭 가능한 아이템 스타일 테마 대응 */
 .stat-item {
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
+  transition: opacity 0.2s, transform 0.1s, color 0.2s;
 }
+
 .stat-item:hover {
-  opacity: 0.7;
-  transform: scale(1.05); /* 살짝 커지는 효과 */
-  color: #ff2f6e; /* 포인트 컬러 (선택사항) */
+  opacity: 0.8;
+  transform: scale(1.05);
+  color: var(--primary); /* #ff2f6e -> var(--primary) 테마 포인트 컬러 대응 */
 }
 </style>

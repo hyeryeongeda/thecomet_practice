@@ -36,15 +36,6 @@
         <p v-if="error" class="error">{{ error }}</p>
       </form>
 
-      <!-- 소셜 로그인(버튼만 먼저) -->
-      <div class="social">
-        <button class="social-btn" type="button" @click="onSocial('google')">Google</button>
-        <button class="social-btn" type="button" @click="onSocial('kakao')">Kakao</button>
-        <button class="social-btn" type="button" @click="onSocial('apple')">Apple</button>
-        <button class="social-btn" type="button" @click="onSocial('x')">X</button>
-        <button class="social-btn" type="button" @click="onSocial('line')">Line</button>
-      </div>
-
       <div class="footer">
         <p>
           아직 계정이 없나요?

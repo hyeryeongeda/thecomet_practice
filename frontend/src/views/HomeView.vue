@@ -235,19 +235,70 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 스타일은 기존 그대로 유지 */
-.page { max-width: 1100px; margin: 0 auto; padding: 20px 14px 60px; }
-.hero { padding: 26px 0 18px; }
-.hero-title { margin: 0; font-size: 44px; font-weight: 900; letter-spacing: -0.02em; }
-.hero-sub { margin: 10px 0 0; color: #666; font-weight: 700; }
-.divider { border: none; border-top: 1px solid #eee; margin: 18px 0 22px; }
-.sec { margin-top: 18px; }
-.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-.sec-title { margin: 0; font-size: 18px; font-weight: 900; }
-.more { border: none; background: transparent; cursor: pointer; color: #666; font-weight: 900; }
-.more:hover { text-decoration: underline; }
-.muted { color: #777; margin: 10px 0 0; }
+/* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */
 
+.page { 
+  max-width: 1100px; 
+  margin: 0 auto; 
+  padding: 20px 14px 60px; 
+  background: var(--bg); /* 배경색 대응 */
+  color: var(--text);    /* 글자색 대응 */
+}
+
+.hero { padding: 26px 0 18px; }
+.hero-title { 
+  margin: 0; 
+  font-size: 44px; 
+  font-weight: 900; 
+  letter-spacing: -0.02em; 
+  color: var(--text); /* #111 -> var(--text) */
+}
+.hero-sub { 
+  margin: 10px 0 0; 
+  color: var(--muted); /* #666 -> var(--muted) */
+  font-weight: 700; 
+}
+
+.divider { 
+  border: none; 
+  border-top: 1px solid var(--border); /* #eee -> var(--border) */
+  margin: 18px 0 22px; 
+}
+
+.sec { margin-top: 18px; }
+.sec-head { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  gap: 10px; 
+  margin-bottom: 10px; 
+}
+.sec-title { 
+  margin: 0; 
+  font-size: 18px; 
+  font-weight: 900; 
+  color: var(--text); 
+}
+
+.more { 
+  border: none; 
+  background: transparent; 
+  cursor: pointer; 
+  color: var(--muted); /* #666 -> var(--muted) */
+  font-weight: 900; 
+  transition: color 0.2s;
+}
+.more:hover { 
+  text-decoration: underline; 
+  color: var(--primary); /* 호버 시 테마별 포인트 컬러 적용 */
+}
+
+.muted { 
+  color: var(--muted); /* #777 -> var(--muted) */
+  margin: 10px 0 0; 
+}
+
+/* 리뷰 그리드 레이아웃 유지 */
 .review-grid {
   margin-top: 16px;
   display: grid;

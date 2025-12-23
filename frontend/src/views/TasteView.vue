@@ -307,7 +307,24 @@ onMounted(loadTaste)
 .section-divider { height: 1px; background: var(--border); margin: 45px 0; } /* #f0f0f0 -> var(--border) */
 
 /* 그리드 레이아웃 */
-.movie-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.movie-grid { 
+  display: grid; 
+  grid-template-columns: repeat(4, 1fr); /* 기본 4열 */
+  gap: 24px; 
+  width: 100%;
+}
+
+/* ⚠️ 기존 .grid에서 .movie-grid로 선택자 이름 통일 */
+@media (max-width: 1000px) { 
+  .movie-grid, .modal-grid { grid-template-columns: repeat(4, 1fr); gap: 20px; } 
+}
+@media (max-width: 820px) { 
+  .movie-grid, .modal-grid { grid-template-columns: repeat(3, 1fr); gap: 15px; } 
+}
+@media (max-width: 560px) { 
+  .movie-grid, .modal-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } 
+}
+
 .movie-card { text-align: center; cursor: pointer; background: transparent; border: 0; padding: 0; }
 .poster-box { 
   width: 100%; 

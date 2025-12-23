@@ -64,9 +64,10 @@ defineProps({
 </script>
 
 <style scoped>
+
 .review-card {
-  background: #fff;
-  border: 1px solid #e3e3e3;
+  background: var(--card); /* #fff -> var(--card) */
+  border: 1px solid var(--border); /* #e3e3e3 -> var(--border) */
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -74,13 +75,14 @@ defineProps({
   gap: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  height: 190px; /* 카드 높이 고정 */
+  height: 190px; /* 카드 높이 고정 유지 */
   box-sizing: border-box;
+  color: var(--text); /* 기본 텍스트 색상 대응 */
 }
 
 .review-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow); /* 고정값 -> var(--shadow) 테마 대응 */
 }
 
 /* 1. 헤더 스타일 */
@@ -99,25 +101,25 @@ defineProps({
   height: 24px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid #eee;
+  border: 1px solid var(--border); /* #eee -> var(--border) */
 }
 .profile-icon {
   font-size: 22px;
-  color: #ccc;
+  color: var(--muted); /* #ccc -> var(--muted) */
 }
 .username {
   font-weight: 700;
   font-size: 13px;
-  color: #333;
+  color: var(--text); /* #333 -> var(--text) */
 }
 .rating {
   font-size: 12px;
   font-weight: 700;
-  background: #fff;
-  border: 1px solid #eee;
+  background: var(--bg); /* #fff -> var(--bg) */
+  border: 1px solid var(--border); /* #eee -> var(--border) */
   padding: 2px 8px;
   border-radius: 4px;
-  color: #333;
+  color: var(--text); /* #333 -> var(--text) */
 }
 
 /* 2. 바디 스타일 (포스터 레이아웃) */
@@ -138,12 +140,12 @@ defineProps({
 
 .poster-box {
   flex-shrink: 0;
-  width: 45px; /* 포스터 너비 */
-  height: 68px; /* 포스터 높이 */
+  width: 45px;
+  height: 68px;
   border-radius: 4px;
   overflow: hidden;
-  background: #f0f0f0;
-  border: 1px solid #eee;
+  background: var(--bg); /* #f0f0f0 -> var(--bg) */
+  border: 1px solid var(--border); /* #eee -> var(--border) */
 }
 .poster-img {
   width: 100%;
@@ -157,7 +159,7 @@ defineProps({
   align-items: center;
   justify-content: center;
   font-size: 9px;
-  color: #999;
+  color: var(--muted); /* #999 -> var(--muted) */
 }
 
 .text-box {
@@ -171,7 +173,7 @@ defineProps({
   margin: 0 0 6px 0;
   font-size: 14px;
   font-weight: 800;
-  color: #222;
+  color: var(--text); /* #222 -> var(--text) */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -180,9 +182,9 @@ defineProps({
 .content-text {
   font-size: 13px;
   line-height: 1.5;
-  color: #666;
+  color: var(--text); /* #666 -> var(--text) */
+  opacity: 0.85; /* 본문 텍스트는 가독성을 위해 살짝 불투명도 조절 */
   margin: 0;
-  /* 3줄까지만 보이고 말줄임표 */
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -198,7 +200,7 @@ defineProps({
 .card-footer {
   display: flex;
   gap: 12px;
-  border-top: 1px solid #f5f5f5;
+  border-top: 1px solid var(--border); /* #f5f5f5 -> var(--border) */
   padding-top: 10px;
   margin-top: auto;
 }
@@ -207,14 +209,15 @@ defineProps({
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #888;
+  color: var(--muted); /* #888 -> var(--muted) */
 }
 .icon-gray {
   width: 16px;
   height: 16px;
-  color: #999; /* 무채색 적용 */
+  color: var(--muted); /* #999 -> var(--muted) */
 }
 .count-text {
   font-weight: 500;
+  color: var(--muted);
 }
 </style>

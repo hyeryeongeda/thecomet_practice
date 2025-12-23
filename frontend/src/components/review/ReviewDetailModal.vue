@@ -2,7 +2,7 @@
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-card">
       <div class="modal-header">
-        <div class="user-profile">
+        <div class="user-profile clickable" @click="goToUserProfile">
           <img v-if="review.user.profile_image" :src="review.user.profile_image" class="u-img">
           <div v-else class="u-icon">👤</div>
           <span class="u-name">{{ review.user.username }}</span>
@@ -139,12 +139,28 @@ function goToMovieDetail() {
     emit('close')
   }
 }
+function goToUserProfile() {
+  const username = props.review?.user?.username
+  if (!username) return
+  router.push(`/users/${username}`) // ✅ username으로 이동
+
+
+  emit('close') // 모달 닫고 이동 (원치 않으면 이 줄만 제거)
+}
+
+
+
+
 
 function formatDate(dateString) {
   if (!dateString) return ''
   const d = new Date(dateString)
   return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`
 }
+
+
+
+
 </script>
 
 <style scoped>
@@ -165,6 +181,9 @@ function formatDate(dateString) {
   display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
 }
 .user-profile { display: flex; align-items: center; gap: 10px; }
+.user-profile.clickable { cursor: pointer; }
+.user-profile.clickable:hover .u-name { text-decoration: underline; }
+
 .u-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
 .u-icon { font-size: 28px; color: #ccc; }
 .u-name { font-weight: 700; font-size: 15px; color: #333; }

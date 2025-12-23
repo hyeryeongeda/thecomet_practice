@@ -7,7 +7,7 @@
     <div v-else>
       <div class="card profile-card">
         <div class="row">
-          <img class="avatar" :src="user.profile_image || fallback" alt="profile" />
+          <img class="avatar" :src="profileSrc" alt="profile" />
           <div class="info">
             <div class="name">{{ user.username }}</div>
             <div class="muted">{{ user.email }}</div>
@@ -57,7 +57,25 @@ const userMovies = ref([]) // 초기값 빈 배열로 선언
 const isFollowing = ref(false)
 const fallback = 'https://placehold.co/96x96?text=%F0%9F%91%A4'
 
-const username = computed(() => route.params.username)
+// ✅ 백엔드 주소로 바꿔주세요 (예: Django면 보통 http://127.0.0.1:8000)
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+
+const profileSrc = computed(() => {
+  const p = user.value?.profile_image
+  if (!p) return fallback
+  if (typeof p !== 'string') return fallback
+  if (p.startsWith('http')) return p
+
+  // "/media/..." 같이 상대경로면 백엔드 주소를 붙여줌
+  if (p.startsWith('/')) return `${API_BASE}${p}`
+
+  // "media/..." 같이 슬래시 없는 경우도 방어
+  return `${API_BASE}/${p}`
+})
+
+
+
+const username = computed(() => route.params.username || route.params.id)
 
 /**
  * [해결] 팔로우 버튼 노출 로직 수정

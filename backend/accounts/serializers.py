@@ -56,10 +56,7 @@ class UserSerializer(serializers.ModelSerializer):
         if hasattr(obj, "setting") and obj.setting:
             return obj.setting.theme
         return "white"
-    def get_reviewed_movies(self, obj):
-        # 해당 유저의 리뷰들에서 movie만 추출
-        qs = Review.objects.filter(user=obj).select_related("movie")
-        
+    
     def get_is_following(self, obj):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:

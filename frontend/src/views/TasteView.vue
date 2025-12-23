@@ -6,7 +6,7 @@
       <div class="info-card clickable" @click="openModal('all')">
         <p class="label">시청한 영화</p>
         <p class="value"><span>{{ stats.watchedCount }}</span>편</p>
-        <p class="more-hint">전체 목록 보기 ></p>
+        <p class="more-hint">전체 목록 보기 ></p> 
       </div>
       <div class="info-card clickable" @click="openModal('genre')">
         <p class="label">최애 장르</p>
@@ -110,7 +110,7 @@ import {
   Legend
 } from 'chart.js'
 import { Radar } from 'vue-chartjs'
-import { fetchTasteDNA } from '@/api/comet'
+import { fetchTasteDNA, fetchMyActivity } from '@/api/comet'
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend)
 
@@ -121,41 +121,37 @@ const GENRE_LABELS = ['드라마','SF','판타지','로맨스','뮤지컬','애�
 
 // 상태 변수
 const stats = ref({ watchedCount: 0, topGenre: '-', avgRating: 0, recentMovieTitle: '' })
-const watchedMovies = ref([])
+const watchedMovies = ref([]) 
 const recommendedMovies = ref([])
 const radarScores = ref({})
 
 // 모달 및 필터 상태
 const showModal = ref(false)
-const filterType = ref('all') // 'all', 'genre', 'rating'
+const filterType = ref('all') 
 const selectedGenre = ref('')
 const selectedRating = ref(0)
 
-// 모달 제목 동적 계산
 const modalTitle = computed(() => {
   if (filterType.value === 'genre') return '장르별 시청 기록'
   if (filterType.value === 'rating') return '평점별 시청 기록'
   return '내가 본 영화 전체 목록'
 })
 
-// 🔥 핵심 로직: 선택된 필터에 따라 실시간으로 영화 목록 필터링
+// 필터링 로직
 const filteredMovies = computed(() => {
   let list = [...watchedMovies.value]
   
   if (filterType.value === 'genre' && selectedGenre.value) {
     list = list.filter(m => m.genres?.includes(selectedGenre.value))
   } else if (filterType.value === 'rating' && selectedRating.value > 0) {
-    // 백엔드의 rating이 소수점일 수 있으므로 버림 처리하여 비교
     list = list.filter(m => Math.floor(m.my_rating) === Number(selectedRating.value))
   }
   
   return list
 })
 
-// 모달 열기 함수
 function openModal(type) {
   filterType.value = type
-  // 초기 필터값 설정: 최애 장르 혹은 평균 평점으로 자동 세팅
   if (type === 'genre') {
     selectedGenre.value = stats.value.topGenre.split('/')[0]
   } else if (type === 'rating') {
@@ -164,17 +160,27 @@ function openModal(type) {
   showModal.value = true
 }
 
-/** 데이터 정규화 로직 */
+// 데이터 변환 함수
+function normalizeActivityList(list) {
+  if (!list) return []
+  return list.map(item => ({
+    tmdb_id: item.movie.id || item.movie.tmdb_id, 
+    title: item.movie.title,
+    poster_path: item.movie.poster_path,
+    genres: item.movie.genres || [],
+    my_rating: item.rating || item.movie.my_rating || 0 
+  }))
+}
+
 function normalizeTastePayload(payload) {
   const data = payload || {}
   return {
-    watchedCount: data.watched_count ?? 0,
+    watchedCount: data.watched_count ?? 0, // 덮어씌워질 예정
     topGenre: data.top_genre ?? '-',
-    avgRating: data.avg_rating ?? 0,
+    avgRating: data.avg_rating ?? 0,      // 덮어씌워질 예정
     recentMovieTitle: data.recent_movie_title ?? '',
     radar: data.genre_scores ?? {},
     recMovies: data.recommended_movies ?? [],
-    watchList: data.watched_movies ?? []
   }
 }
 
@@ -188,7 +194,7 @@ function normalizeMovies(list) {
   }))
 }
 
-// Radar 차트 설정
+// 차트 설정
 const chartData = computed(() => ({
   labels: GENRE_LABELS,
   datasets: [{
@@ -221,22 +227,45 @@ function goDetail(tmdbId) {
   router.push({ name: 'movie-detail', params: { tmdbId } })
 }
 
+// ✅ [수정] loadTaste 함수: 개수 및 평균 별점 직접 계산 로직 추가
 async function loadTaste() {
   try {
-    const payload = await fetchTasteDNA()
-    const normalized = normalizeTastePayload(payload)
+    const [tastePayload, activityList] = await Promise.all([
+      fetchTasteDNA(),
+      fetchMyActivity({ status: 'commented', sort: 'latest' })
+    ])
     
+    // 1. API 통계 데이터 우선 적용 (장르, 차트 등)
+    const normalized = normalizeTastePayload(tastePayload)
     stats.value = { ...normalized }
     radarScores.value = normalized.radar
-    watchedMovies.value = normalizeMovies(normalized.watchList)
     recommendedMovies.value = normalizeMovies(normalized.recMovies)
+
+    // 2. 실제 리스트 데이터 적용
+    watchedMovies.value = normalizeActivityList(activityList)
+    
+    // 🔥 [핵심 수정 1] 개수 동기화
+    const realCount = watchedMovies.value.length
+    stats.value.watchedCount = realCount
+
+    // 🔥 [핵심 수정 2] 평균 별점 직접 계산 (0점인 보고싶은 영화 제외 효과)
+    if (realCount > 0) {
+      // 리스트에 있는 모든 평점을 더함
+      const sum = watchedMovies.value.reduce((acc, cur) => acc + cur.my_rating, 0)
+      // 평균 계산 후 소수점 한 자리까지 표현
+      stats.value.avgRating = (sum / realCount).toFixed(1)
+    } else {
+      stats.value.avgRating = 0
+    }
+
   } catch (err) {
-    console.error("Taste DNA 로드 실패:", err)
+    console.error("Taste DNA 및 목록 로드 실패:", err)
   }
 }
 
 onMounted(loadTaste)
 </script>
+
 
 <style scoped>
 /* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */

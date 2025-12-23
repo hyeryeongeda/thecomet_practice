@@ -42,6 +42,8 @@ class ReviewSerializer(serializers.ModelSerializer):
     likes_count = serializers.IntegerField(read_only=True)
     like_count = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
+    
+    comments_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Review
@@ -58,6 +60,7 @@ class ReviewSerializer(serializers.ModelSerializer):
             "is_liked",
             "created_at",
             "updated_at",
+            "comments_count",
         ]
         read_only_fields = ["id", "movie", "user", "likes_count", "created_at", "updated_at"]
 

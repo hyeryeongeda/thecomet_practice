@@ -246,8 +246,12 @@ function handleSort(sortType) {
 
 async function openDetailModal(review) {
   selectedReview.value = review
-  try { reviewComments.value = await fetchReviewComments(review.id) } 
-  catch { reviewComments.value = [] }
+  try { reviewComments.value = await fetchReviewComments(review.id) 
+    review.comments_count = reviewComments.value.length   // ✅ 카드 카운트 동기화
+  } 
+  catch { reviewComments.value = [] 
+    review.comments_count = 0
+  }
   showDetailModal.value = true
 }
 
@@ -276,17 +280,19 @@ async function handleReplySubmit(content) {
   try {
     await createReviewComment(selectedReview.value.id, content)
     reviewComments.value = await fetchReviewComments(selectedReview.value.id)
-    const target = reviews.value.find(r => r.id === selectedReview.value.id)
-    if (target) target.comments_count = (target.comments_count || 0) + 1
-    if (selectedReview.value) selectedReview.value.comments_count = (selectedReview.value.comments_count || 0) + 1
+    if (selectedReview.value) {
+    selectedReview.value.comments_count = (selectedReview.value.comments_count || 0) + 1
+  }
+   
   } catch { alert('댓글 작성 실패') }
 }
 
 function handleReplyDelete(commentId) {
   reviewComments.value = reviewComments.value.filter(c => c.id !== commentId)
-  const target = reviews.value.find(r => r.id === selectedReview.value.id)
-  if (target) target.comments_count = Math.max(0, (target.comments_count || 0) - 1)
-  if (selectedReview.value) selectedReview.value.comments_count = Math.max(0, (selectedReview.value.comments_count || 0) - 1)
+  if (selectedReview.value) {
+  selectedReview.value.comments_count = Math.max(0, (selectedReview.value.comments_count || 0) - 1)
+}
+  
 }
 
 onMounted(loadAll)

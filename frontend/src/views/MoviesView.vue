@@ -216,46 +216,59 @@ watch(
 </script>
 
 <style scoped>
-.page { max-width: 1100px; margin: 0 auto; padding: 18px 14px; }
+/* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */
+
+.page { 
+  max-width: 1100px; 
+  margin: 0 auto; 
+  padding: 18px 14px; 
+  background: var(--bg); /* 배경색 대응 */
+  color: var(--text);    /* 글자색 대응 */
+}
 .head { margin-bottom: 14px; }
-.title { margin: 0; font-size: 22px; font-weight: 1000; }
+.title { margin: 0; font-size: 22px; font-weight: 1000; color: var(--text); }
 .sub { margin: 6px 0 0; color: var(--muted); }
 
 .filters{
-  background: #fff;
+  background: var(--card); /* #fff -> var(--card) */
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 14px;
   margin-bottom: 14px;
 }
 .filter-row{ display:flex; align-items:center; gap: 12px; margin-bottom: 10px; }
-.label{ width: 84px; font-weight: 900; font-size: 13px; color: #111; }
+.label{ width: 84px; font-weight: 900; font-size: 13px; color: var(--text); } /* #111 -> var(--text) */
 .chips{ display:flex; flex-wrap:wrap; gap: 8px; }
 .chip{
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--bg); /* #fff -> var(--bg) */
+  color: var(--text);
   padding: 8px 10px;
   border-radius: 999px;
   font-size: 13px;
   cursor: pointer;
   font-weight: 800;
+  transition: all 0.2s;
 }
 .chip.active{
-  border-color: #111;
-  box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+  border-color: var(--primary); /* #111 -> var(--primary) */
+  color: var(--primary);        /* 활성화 시 포인트 컬러 */
+  box-shadow: var(--shadow);
 }
 .select{
   padding: 9px 10px;
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--input-bg);
+  color: var(--text);
 }
 .spacer{ flex: 1; }
 .searchbox{ display:flex; align-items:center; gap: 10px; }
-.q{ font-weight: 900; }
+.q{ font-weight: 900; color: var(--text); }
 .clear{
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--bg); /* #fff -> var(--bg) */
+  color: var(--text);
   border-radius: 10px;
   padding: 8px 10px;
   cursor: pointer;
@@ -265,10 +278,11 @@ watch(
 .hint{ color: var(--muted); font-size: 12px; margin-top: 6px; }
 
 .result-top{ display:flex; align-items:center; justify-content:space-between; margin: 10px 0; }
-.count{ color:#111; }
+.count{ color: var(--text); } /* #111 -> var(--text) */
 .muted{ color: var(--muted); }
-.error{ color:#ff4d4f; font-weight: 900; }
+.error{ color: var(--primary); font-weight: 900; } /* #ff4d4f -> var(--primary) */
 
+/* 그리드 구조 유지 */
 .grid{
   display:grid;
   grid-template-columns: repeat(5, 1fr);
@@ -278,6 +292,7 @@ watch(
 @media (max-width: 820px){ .grid{ grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 560px){ .grid{ grid-template-columns: repeat(2, 1fr); } }
 
+/* 페이지네이션 */
 .pager{
   margin-top: 16px;
   display:flex;
@@ -288,18 +303,22 @@ watch(
 }
 .pbtn, .pnum{
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--card); /* #fff -> var(--card) */
+  color: var(--text);
   border-radius: 10px;
   padding: 8px 10px;
   cursor: pointer;
   font-weight: 900;
+  transition: all 0.2s;
 }
 .pnum.active{
-  border-color: #111;
+  border-color: var(--primary); /* #111 -> var(--primary) */
+  color: var(--primary);
 }
 .pbtn:disabled{
   opacity: 0.5;
   cursor: not-allowed;
+  background: var(--bg);
 }
 
 .goto{ display:flex; align-items:center; gap: 8px; margin-left: 10px; color: var(--muted); }
@@ -308,5 +327,7 @@ watch(
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
+  background: var(--input-bg);
+  color: var(--text);
 }
 </style>

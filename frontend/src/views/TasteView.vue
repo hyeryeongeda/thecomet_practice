@@ -239,67 +239,122 @@ onMounted(loadTaste)
 </script>
 
 <style scoped>
-.taste-page { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
-.page-title { font-size: 26px; font-weight: 900; margin-bottom: 35px; }
+/* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */
+
+.taste-page { 
+  max-width: 1000px; 
+  margin: 0 auto; 
+  padding: 40px 20px; 
+  background: var(--bg); /* 배경색 대응 */
+  color: var(--text);    /* 글자색 대응 */
+}
+.page-title { font-size: 26px; font-weight: 900; margin-bottom: 35px; color: var(--text); }
 
 /* 요약 카드 디자인 */
 .summary-section { display: flex; gap: 20px; margin-bottom: 50px; }
 .info-card { 
-  flex: 1; background: #fff; border-radius: 20px; padding: 28px; 
-  text-align: center; border: 1px solid #f0f0f0; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  flex: 1; 
+  background: var(--card); /* #fff -> var(--card) */
+  border-radius: 20px; 
+  padding: 28px; 
+  text-align: center; 
+  border: 1px solid var(--border); /* #f0f0f0 -> var(--border) */
+  box-shadow: var(--shadow); 
 }
 .info-card.clickable { cursor: pointer; transition: all 0.25s ease; }
-.info-card.clickable:hover { transform: translateY(-7px); border-color: #a0a0ff; }
-.info-card .label { font-size: 14px; font-weight: 700; color: #777; margin-bottom: 12px; }
-.info-card .value { font-size: 30px; font-weight: 900; color: #111; }
-.more-hint { font-size: 11px; color: #bbb; margin-top: 8px; font-weight: bold; }
+.info-card.clickable:hover { 
+  transform: translateY(-7px); 
+  border-color: var(--primary); /* #a0a0ff -> var(--primary) */
+}
+.info-card .label { font-size: 14px; font-weight: 700; color: var(--muted); margin-bottom: 12px; } /* #777 -> var(--muted) */
+.info-card .value { font-size: 30px; font-weight: 900; color: var(--text); } /* #111 -> var(--text) */
+.more-hint { font-size: 11px; color: var(--muted); margin-top: 8px; font-weight: bold; } /* #bbb -> var(--muted) */
 
 .chart-section { display: flex; justify-content: center; margin-bottom: 60px; }
 .chart-wrapper { width: 100%; max-width: 450px; height: 400px; }
 
 /* 추천 섹션 */
-.recommend-title { font-size: 22px; font-weight: 800; margin-bottom: 25px; }
-.section-divider { height: 1px; background: #f0f0f0; margin: 45px 0; }
+.recommend-title { font-size: 22px; font-weight: 800; margin-bottom: 25px; color: var(--text); }
+.section-divider { height: 1px; background: var(--border); margin: 45px 0; } /* #f0f0f0 -> var(--border) */
 
 /* 그리드 레이아웃 */
 .movie-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
 .movie-card { text-align: center; cursor: pointer; background: transparent; border: 0; padding: 0; }
 .poster-box { 
-  width: 100%; aspect-ratio: 2 / 3; background: #222; border-radius: 12px; 
-  position: relative; overflow: hidden; margin-bottom: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+  width: 100%; 
+  aspect-ratio: 2 / 3; 
+  background: var(--bg); /* #222 -> var(--bg) 포스터 로딩 전 배경 */
+  border-radius: 12px; 
+  position: relative; 
+  overflow: hidden; 
+  margin-bottom: 12px; 
+  box-shadow: 0 5px 15px rgba(0,0,0,0.15); 
 }
 .poster-box img { width: 100%; height: 100%; object-fit: cover; }
-.movie-title { font-size: 14px; font-weight: 700; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.movie-title { 
+  font-size: 14px; 
+  font-weight: 700; 
+  color: var(--text); /* #333 -> var(--text) */
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  white-space: nowrap; 
+}
 
 /* 모달 디자인 */
 .modal-overlay { 
   position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-  background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; 
+  background: rgba(0,0,0,0.75); 
+  display: flex; align-items: center; justify-content: center; 
+  z-index: 2000; padding: 20px; 
 }
 .modal-content { 
-  background: #fff; width: 100%; max-width: 850px; max-height: 85vh; 
-  border-radius: 24px; display: flex; flex-direction: column; overflow: hidden; animation: fadeIn 0.3s ease;
+  background: var(--card); /* #fff -> var(--card) */
+  width: 100%; max-width: 850px; max-height: 85vh; 
+  border-radius: 24px; 
+  display: flex; 
+  flex-direction: column; 
+  overflow: hidden; 
+  animation: fadeIn 0.3s ease; 
+  color: var(--text);
 }
 .modal-header { 
-  padding: 24px 30px; border-bottom: 1px solid #f0f0f0; 
-  display: flex; justify-content: space-between; align-items: center; 
+  padding: 24px 30px; 
+  border-bottom: 1px solid var(--border); /* #f0f0f0 -> var(--border) */
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
 }
-.modal-title { font-size: 22px; font-weight: 900; margin: 0; }
+.modal-title { font-size: 22px; font-weight: 900; margin: 0; color: var(--text); }
 .modal-filters { margin: 0 25px; display: flex; gap: 10px; }
 .filter-select { 
-  padding: 8px 16px; border-radius: 10px; border: 2px solid #eee; 
-  font-weight: 700; font-size: 14px; cursor: pointer; outline: none; transition: border-color 0.2s;
+  padding: 8px 16px; 
+  border-radius: 10px; 
+  border: 1px solid var(--border); /* #eee -> var(--border) */
+  background: var(--input-bg);
+  color: var(--text);
+  font-weight: 700; 
+  font-size: 14px; 
+  cursor: pointer; 
+  outline: none; 
+  transition: border-color 0.2s; 
 }
-.filter-select:focus { border-color: #a0a0ff; }
-.close-btn { background: none; border: none; font-size: 32px; cursor: pointer; color: #bbb; line-height: 1; }
+.filter-select:focus { border-color: var(--primary); } /* #a0a0ff -> var(--primary) */
+.close-btn { background: none; border: none; font-size: 32px; cursor: pointer; color: var(--muted); line-height: 1; } /* #bbb -> var(--muted) */
 
 .modal-body { flex: 1; overflow-y: auto; padding: 30px; }
 .modal-grid { grid-template-columns: repeat(4, 1fr); gap: 20px; }
 
-/* 평점 배지 */
+/* 평점 배지는 가독성을 위해 기존 스타일(어두운 배경에 흰색 글자) 유지 혹은 보정 */
 .rating-badge { 
-  position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); 
-  color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; 
+  position: absolute; 
+  bottom: 10px; 
+  right: 10px; 
+  background: rgba(0,0,0,0.8); 
+  color: #fff; 
+  padding: 4px 8px; 
+  border-radius: 6px; 
+  font-size: 11px; 
+  font-weight: 800; 
 }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

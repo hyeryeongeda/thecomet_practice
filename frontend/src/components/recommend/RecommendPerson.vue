@@ -96,7 +96,6 @@ const selected = ref(null)
 const personDetail = ref(null)
 const workMovies = ref([])
 
-// 이미지 URL 처리
 function profileUrl(path) {
   return path ? `https://image.tmdb.org/t/p/w342${path}` : ''
 }
@@ -111,9 +110,6 @@ function normalizePeople(res) {
   return []
 }
 
-/**
- * 1) 기본 추천 로드 (작품이 있는 인물을 찾을 때까지 랜덤 검색)
- */
 async function loadDefault() {
   loading.value.search = true
   try {
@@ -121,7 +117,6 @@ async function loadDefault() {
     peopleList.value = normalizePeople(res)
     
     if (peopleList.value.length > 0) {
-      // 이제 리스트의 모든 인물이 작품을 가지고 있으므로 바로 랜덤 선택 가능
       const randomIndex = Math.floor(Math.random() * peopleList.value.length)
       await selectPerson(peopleList.value[randomIndex])
     }
@@ -130,9 +125,6 @@ async function loadDefault() {
   }
 }
 
-/**
- * 2) 검색 결과 처리
- */
 async function searchPeople() {
   const keyword = q.value.trim()
   if (!keyword) return
@@ -141,16 +133,12 @@ async function searchPeople() {
     const res = await fetchPersonRecommends({ q: keyword })
     peopleList.value = normalizePeople(res)
     if (peopleList.value.length) {
-      await selectPerson(peopleList.value[0]) // 검색 시엔 첫 번째 결과 우선
+      await selectPerson(peopleList.value[0])
     }
   } finally {
     loading.value.search = false
   }
 }
-
-/**
- * 3) 특정 인물 상세 정보 로드
- */
 
 async function selectPerson(p) {
   selected.value = p
@@ -159,27 +147,17 @@ async function selectPerson(p) {
   loading.value.detail = true
 
   try {
-    // 1. 상세 데이터 가져오기
     const detail = await fetchPersonDetail(p.tmdb_id || p.id)
     personDetail.value = detail
-    
-    /**
-     * 2. [수정 핵심] 백엔드 Serializer에서 정의한 'filmography'를 최우선으로 가져옵니다.
-     */
     const candidates = detail?.filmography || []
-
-    // 3. 데이터 매핑 (백엔드 out.append 구조와 맞춤)
     const mapped = candidates.map((x) => ({
-      tmdb_id: x.tmdb_id,    // 백엔드 필드명: tmdb_id
-      title: x.title,        // 백엔드 필드명: title
-      poster_path: x.poster_path, // 백엔드 필드명: poster_path
-      // 평점이 없는 리스트이므로 기본값 0 처리 혹은 필요시 추가 데이터 요청
+      tmdb_id: x.tmdb_id,
+      title: x.title,
+      poster_path: x.poster_path,
       vote_average: x.vote_average ?? 0, 
     })).filter(x => x.tmdb_id)
 
-    // 4. 결과 할당
-    workMovies.value = mapped.slice(0, 10) // 상위 10개만 표시
-    
+    workMovies.value = mapped.slice(0, 10)
   } catch (e) {
     console.error("인물 상세 로드 실패:", e)
   } finally {
@@ -196,12 +174,15 @@ onMounted(loadDefault)
 </script>
 
 <style scoped>
+/* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */
+
 .panel {
-  border: 1px solid #eee;
+  border: 1px solid var(--border); /* #eee -> var(--border) */
   border-radius: 20px;
   padding: 24px;
-  background: #fff;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  background: var(--card); /* #fff -> var(--card) */
+  color: var(--text);      /* 글자색 대응 추가 */
+  box-shadow: var(--shadow);
 }
 
 .header-row {
@@ -212,8 +193,9 @@ onMounted(loadDefault)
 }
 
 .refresh-btn {
-  background: none;
-  border: 1px solid #ddd;
+  background: var(--bg); /* 기본 배경색 */
+  border: 1px solid var(--border);
+  color: var(--text);
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 13px;
@@ -221,10 +203,10 @@ onMounted(loadDefault)
   cursor: pointer;
   transition: all 0.2s;
 }
-.refresh-btn:hover { background: #f5f5f5; }
+.refresh-btn:hover { background: var(--primary-weak); }
 
 .top { display: grid; gap: 12px; }
-.h2 { margin: 0; font-size: 20px; font-weight: 900; color: #111; }
+.h2 { margin: 0; font-size: 20px; font-weight: 900; color: var(--text); } /* #111 -> var(--text) */
 
 .search {
   display: grid;
@@ -234,22 +216,23 @@ onMounted(loadDefault)
 .input {
   height: 44px;
   border-radius: 12px;
-  border: 1px solid #eee;
-  background: #f8f8f8;
+  border: 1px solid var(--border);
+  background: var(--input-bg); /* #f8f8f8 -> var(--input-bg) */
+  color: var(--text);
   padding: 0 15px;
   font-weight: 700;
 }
 .btn {
   height: 44px;
   border-radius: 12px;
-  background: #111;
-  color: #fff;
+  background: var(--primary); /* #111 -> var(--primary) */
+  color: #fff; /* 포인트 컬러 배경 위 글자는 흰색 유지 */
   font-weight: 900;
   cursor: pointer;
   border: none;
 }
 
-.hint { margin: 0; color: #ff4d4d; font-weight: 800; font-size: 12px; }
+.hint { margin: 0; color: var(--primary); font-weight: 800; font-size: 12px; } /* #ff4d4d -> var(--primary)로 테마 연동 */
 
 .chips {
   margin-top: 15px;
@@ -262,23 +245,28 @@ onMounted(loadDefault)
   flex: 0 0 auto;
   padding: 8px 16px;
   border-radius: 999px;
-  border: 1px solid #eee;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
   font-weight: 800;
   cursor: pointer;
 }
-.chip.active { background: #111; color: #fff; border-color: #111; }
+.chip.active { 
+  background: var(--primary); /* #111 -> var(--primary) */
+  color: #fff; 
+  border-color: var(--primary); 
+}
 
-/* ✅ 시안 반영 Hero Section */
+/* Hero Section */
 .hero {
   margin-top: 20px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border);
   border-radius: 24px;
   padding: 24px;
   display: grid;
   grid-template-columns: 180px 1fr;
   gap: 24px;
-  background: #fff;
+  background: var(--bg); /* 패널보다 살짝 깊이감 있게 배경색 사용 */
 }
 
 .avatar {
@@ -286,7 +274,7 @@ onMounted(loadDefault)
   aspect-ratio: 2 / 3;
   border-radius: 16px;
   overflow: hidden;
-  background: #111;
+  background: #111; /* 이미지 플레이스홀더 배경은 어둡게 유지 */
   display: grid;
   place-items: center;
 }
@@ -294,11 +282,12 @@ onMounted(loadDefault)
 .noimg { color: rgba(255,255,255,0.4); font-weight: 900; font-size: 20px; }
 
 .info { display: flex; flex-direction: column; justify-content: center; gap: 10px; }
-.name { margin: 0; font-size: 24px; font-weight: 900; }
-.role-tag { color: #666; font-weight: 800; font-size: 14px; margin: 0; }
+.name { margin: 0; font-size: 24px; font-weight: 900; color: var(--text); }
+.role-tag { color: var(--muted); font-weight: 800; font-size: 14px; margin: 0; }
 .bio { 
   margin: 0; 
-  color: #444; 
+  color: var(--text); /* #444 -> var(--text) */
+  opacity: 0.8;
   font-weight: 600; 
   line-height: 1.6; 
   display: -webkit-box;
@@ -308,10 +297,10 @@ onMounted(loadDefault)
 }
 
 .works { margin-top: 30px; }
-.sub { margin: 0 0 15px; font-size: 16px; color: #333; }
-.sub strong { color: #111; font-weight: 900; }
+.sub { margin: 0 0 15px; font-size: 16px; color: var(--text); } /* #333 -> var(--text) */
+.sub strong { color: var(--text); font-weight: 900; }
 
-/* ✅ 포스터 그리드 */
+/* 포스터 그리드 */
 .grid {
   display: grid;
   gap: 16px;
@@ -345,13 +334,13 @@ onMounted(loadDefault)
   margin: 0 0 5px;
   font-weight: 900;
   font-size: 14px;
-  color: #111;
+  color: var(--text); /* #111 -> var(--text) */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.rate { margin: 0; color: #666; font-weight: 800; font-size: 13px; }
-.star { color: #f5c518; margin-right: 2px; }
+.rate { color: var(--muted); font-weight: 800; font-size: 13px; margin: 0; }
+.star { color: #f5c518; margin-right: 2px; } /* 별 색상은 테마 무관 고정 */
 
 @media (max-width: 768px) {
   .hero { grid-template-columns: 120px 1fr; padding: 15px; }

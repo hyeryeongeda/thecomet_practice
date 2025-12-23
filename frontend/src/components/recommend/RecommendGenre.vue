@@ -2,7 +2,6 @@
   <div class="wrap">
     <h2 class="h2">[장르 추천]</h2>
 
-    <!-- 장르 탭(칩) -->
     <div class="chips" v-if="genres.length">
       <button
         v-for="g in genres"
@@ -22,7 +21,6 @@
       <div class="chip sk" v-for="n in 5" :key="n"></div>
     </div>
 
-    <!-- 영화 그리드 -->
     <div v-if="loadingMovies" class="loading">로딩중...</div>
 
     <div v-else-if="movies.length" class="grid">
@@ -109,9 +107,8 @@ async function selectGenre(genreId) {
   await loadMoviesByGenre(genreId)
 }
 
-// 칩이 많아질 때 대비(옵션)
 function scrollChips() {
-  // 지금은 간단 처리(필요하면 chips 컨테이너 ref로 스크롤 구현 가능)
+  // 스크롤 로직 필요시 추가
 }
 
 onMounted(async () => {
@@ -121,17 +118,21 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 🎨 레이아웃 구조는 유지하고 색상만 테마 변수로 교체 */
+
 .wrap {
-  border: 1px solid #eee;
+  border: 1px solid var(--border); /* #eee -> var(--border) */
   border-radius: 16px;
   padding: 16px;
-  background: #fff;
+  background: var(--card); /* #fff -> var(--card) */
+  color: var(--text);      /* 글자색 대응 추가 */
 }
 
 .h2 {
   margin: 0 0 12px;
   font-size: 18px;
   font-weight: 900;
+  color: var(--text);
 }
 
 /* chips */
@@ -145,22 +146,24 @@ onMounted(async () => {
   padding-bottom: 4px;
 }
 .chips::-webkit-scrollbar { height: 6px; }
-.chips::-webkit-scrollbar-thumb { background: #ddd; border-radius: 999px; }
+.chips::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
 
 .chip {
   height: 34px;
   padding: 0 14px;
   border-radius: 12px;
-  border: 1px solid #e6e6e6;
-  background: #f2f2f2;
+  border: 1px solid var(--border); /* #e6e6e6 -> var(--border) */
+  background: var(--bg);          /* #f2f2f2 -> var(--bg) */
+  color: var(--text);             /* 글자색 추가 */
   font-weight: 900;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.2s;
 }
 .chip.active {
-  background: #111;
-  border-color: #111;
-  color: #fff;
+  background: var(--primary);    /* #111 -> var(--primary) */
+  border-color: var(--primary);
+  color: #fff;                   /* 활성화 시 글자색 흰색 유지 */
 }
 .chip.arrow {
   margin-left: auto;
@@ -177,8 +180,8 @@ onMounted(async () => {
 }
 .chip.sk {
   width: 80px;
-  background: #f2f2f2;
-  border-color: #f2f2f2;
+  background: var(--bg);         /* #f2f2f2 -> var(--bg) */
+  border-color: var(--border);    /* #f2f2f2 -> var(--border) */
 }
 
 /* grid */
@@ -186,11 +189,8 @@ onMounted(async () => {
   margin-top: 14px;
   display: grid;
   gap: 14px;
-
-  /* 핵심: 카드가 최소 160px ~ 최대 190px 안에서만 늘어남 */
   grid-template-columns: repeat(auto-fill, minmax(160px, 190px));
-  justify-content: center; /* 남는 공간은 가운데로 */
-  .wrap { max-width: 1000px; margin: 0 auto; }
+  justify-content: center;
 }
 @media (max-width: 900px) {
   .grid { grid-template-columns: repeat(3, 1fr); }
@@ -201,7 +201,7 @@ onMounted(async () => {
 
 .card {
   width: 100%;
-  max-width: 190px;        /* grid max와 동일 */
+  max-width: 190px;
   border: 0;
   padding: 0;
   background: transparent;
@@ -214,7 +214,7 @@ onMounted(async () => {
   aspect-ratio: 2 / 3;
   border-radius: 10px;
   overflow: hidden;
-  background: #111;
+  background: #111; /* 포스터 로딩 전 배경은 어둡게 유지 */
   display: grid;
   place-items: center;
 }
@@ -235,15 +235,16 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--text); /* 고정 색상 제거 -> var(--text) */
 }
 
 .stars { display: flex; gap: 2px; }
-.star { font-size: 12px; color: #d9d9d9; }
-.star.on { color: #f5c518; }
+.star { font-size: 12px; color: var(--muted); } /* #d9d9d9 -> var(--muted) */
+.star.on { color: #f5c518; } /* 별 점등 색상은 테마 무관 고정 */
 
 .loading, .empty {
   padding: 14px 0;
   font-weight: 800;
-  color: #666;
+  color: var(--muted); /* #666 -> var(--muted) */
 }
 </style>

@@ -213,8 +213,6 @@ function goDetail(tmdbId) {
 /** ✅ 실제 데이터 로드 */
 async function loadTaste() {
   const payload = await fetchTasteDNA()
-  console.log("백엔드에서 온 원본 데이터:", payload) // <--- 이 줄을 추가해서 F12 콘솔을 보세요.
-  
   const normalized = normalizeTastePayload(payload)
 
   stats.value.watchedCount = normalized.watchedCount

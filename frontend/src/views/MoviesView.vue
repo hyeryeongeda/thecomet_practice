@@ -45,11 +45,6 @@
           <button class="clear" @click="applyQuery({ q: null, page: 1 })">검색 해제</button>
         </div>
       </div>
-
-      <!-- (옵션) 국가/연도 UI 자리만 확보: 나중에 API 붙일 때 바로 확장 가능 -->
-      <div class="hint">
-        국가/연도 필터는 다음 단계에서 API 설계 후 연결할게.
-      </div>
     </section>
 
     <!-- 결과 -->

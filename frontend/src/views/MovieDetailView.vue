@@ -15,19 +15,21 @@
             </div>
           </div>
 
-          <MovieActionRow 
-            :isLiked="isLiked" 
-            :isWished="isWished"
-            :starWidth="starWidth"
-            :voteScore="voteScore"
-            :voteCount="movie.vote_count"
-            @toggle-like="onToggleLike"
-            @toggle-wish="onToggleWish"
-            @open-write-modal="openWriteModal"
-          />
+          <div class="main-info">
+            <MovieActionRow 
+              :isLiked="isLiked" 
+              :isWished="isWished"
+              :starWidth="starWidth"
+              :voteScore="voteScore"
+              :voteCount="movie.vote_count"
+              @toggle-like="onToggleLike"
+              @toggle-wish="onToggleWish"
+              @open-write-modal="openWriteModal"
+            />
+            
+            <p class="overview">{{ movie.overview || '등록된 줄거리가 없습니다.' }}</p>
+          </div>
         </div>
-
-        <p class="overview">{{ movie.overview || '등록된 줄거리가 없습니다.' }}</p>
 
         <div class="section-divider"></div>
 
@@ -91,27 +93,22 @@ import {
   deleteReview, updateReview, fetchMyReview
 } from '@/api/comet'
 
-// 공통 컴포넌트
+// 컴포넌트 임포트
 import MovieRow from '@/components/movie/MovieRow.vue'
-
-// 분리한 상세 컴포넌트들
 import MovieHero from '@/components/moviedetail/MovieHero.vue'
 import MovieActionRow from '@/components/moviedetail/MovieActionRow.vue'
 import MovieCastRail from '@/components/moviedetail/MovieCastRail.vue'
 import MovieCommentSection from '@/components/moviedetail/MovieCommentSection.vue'
-
-// 모달 컴포넌트
 import ReviewWriteModal from '@/components/review/ReviewWriteModal.vue'
 import ReviewListModal from '@/components/review/ReviewListModal.vue'
 import ReviewDetailModal from '@/components/review/ReviewDetailModal.vue'
 
-// 기본 설정
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const tmdbId = computed(() => route.params.tmdbId)
 
-// 상태 변수
+// 상태 데이터
 const loading = ref(true)
 const movie = ref(null)
 const reviews = ref([])
@@ -127,7 +124,7 @@ const showDetailModal = ref(false)
 const selectedReview = ref(null)
 const reviewComments = ref([])
 
-// === Computed 데이터 처리 ===
+// === Computed ===
 const posterSrc = computed(() => movie.value?.poster_path ? `https://image.tmdb.org/t/p/w500${movie.value.poster_path}` : '')
 const voteScore = computed(() => movie.value?.vote_average ? Number(movie.value.vote_average).toFixed(1) : '0.0')
 const starWidth = computed(() => `${(movie.value?.vote_average || 0) * 10}%`)
@@ -138,7 +135,7 @@ const allCast = computed(() => {
   return [...dirs, ...acts]
 })
 
-// === 데이터 로드 로직 ===
+// === 데이터 로드 ===
 async function loadAll() {
   loading.value = true
   isLiked.value = false
@@ -169,9 +166,11 @@ async function loadAll() {
       const s = await fetchSimilarMovies(id)
       similarList.value = (s.length > 0) ? s : await fetchFallbackMovies(m.genres[0]?.id, m.id)
     } catch { similarList.value = [] }
-
-  } catch (e) { console.error(e) } 
-  finally { loading.value = false }
+  } catch (e) { 
+    console.error(e) 
+  } finally { 
+    loading.value = false 
+  }
 }
 
 async function fetchFallbackMovies(genreId, currentId) {
@@ -207,12 +206,11 @@ async function onToggleWish() {
     }
     loadAll()
   } catch (err) {
-    if (err.response?.data?.detail) alert(err.response.data.detail)
-    else alert('오류가 발생했습니다.')
+    alert(err.response?.data?.detail || '오류가 발생했습니다.')
   }
 }
 
-// 모달 관련 함수 (Write, List, Detail)
+// === 리뷰/댓글 로직 ===
 async function openWriteModal() {
   if (!authStore.isLoggedIn) return alert('로그인 필요')
   try { myReview.value = await fetchMyReview(Number(tmdbId.value)) } 
@@ -225,7 +223,6 @@ async function handleWriteSubmit(payload) {
     const body = { content: payload.content, rating: payload.rating, watched: true }
     if (myReview.value?.id) await updateReview(myReview.value.id, body)
     else await createMovieReview(Number(tmdbId.value), body)
-    
     showWriteModal.value = false
     await loadAll()
   } catch { alert('저장 실패') }
@@ -272,7 +269,6 @@ async function handleReviewLike(reviewId) {
 
 async function handleReplySubmit(content) {
   if (!authStore.isLoggedIn) return alert('로그인 필요')
-
   if (content === null) {
     reviewComments.value = await fetchReviewComments(selectedReview.value.id)
     return
@@ -280,64 +276,78 @@ async function handleReplySubmit(content) {
   try {
     await createReviewComment(selectedReview.value.id, content)
     reviewComments.value = await fetchReviewComments(selectedReview.value.id)
-
-    // 🔥 [핵심 추가] 원본 리스트(reviews)에서 해당 리뷰를 찾아 숫자를 직접 올려줍니다.
     const target = reviews.value.find(r => r.id === selectedReview.value.id)
-    if (target) {
-      target.comments_count = (target.comments_count || 0) + 1
-    }
-
-    // 모달창 내부 숫자도 업데이트
-    if (selectedReview.value) {
-      selectedReview.value.comments_count = (selectedReview.value.comments_count || 0) + 1
-    }
-  } catch (e) {
-    alert('댓글 작성 실패')
-  }
+    if (target) target.comments_count = (target.comments_count || 0) + 1
+    if (selectedReview.value) selectedReview.value.comments_count = (selectedReview.value.comments_count || 0) + 1
+  } catch { alert('댓글 작성 실패') }
 }
 
 function handleReplyDelete(commentId) {
-  // 1. 모달 내부 리스트에서 제거
   reviewComments.value = reviewComments.value.filter(c => c.id !== commentId)
-
-  // 2. ✅ [수정] 원본 리스트(reviews)에서 해당 리뷰를 찾아 댓글 수 감소
   const target = reviews.value.find(r => r.id === selectedReview.value.id)
-  if (target) {
-    target.comments_count = Math.max(0, (target.comments_count || 0) - 1)
-  }
-
-  // 모달 내부 숫자도 업데이트
-  if (selectedReview.value) {
-    selectedReview.value.comments_count = Math.max(0, (selectedReview.value.comments_count || 0) - 1)
-  }
+  if (target) target.comments_count = Math.max(0, (target.comments_count || 0) - 1)
+  if (selectedReview.value) selectedReview.value.comments_count = Math.max(0, (selectedReview.value.comments_count || 0) - 1)
 }
 
-// 초기화 및 와치
 onMounted(loadAll)
 watch(() => tmdbId.value, loadAll)
 </script>
 
 <style scoped>
-/* 페이지 레이아웃 및 공통 스타일 */
+/* 페이지 기본 설정 */
 .page { background-color: #fff; padding-bottom: 100px; min-height: 100vh; }
 .loading-screen, .error-screen { padding: 100px; text-align: center; color: #888; }
 .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
-
 .body-wrapper { margin-top: 30px; }
-.top-section { display: flex; gap: 30px; }
+
+/* 상단 정보 영역 (포스터 + 정보) */
+.top-section {
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+}
+
 .poster-area { flex-shrink: 0; width: 240px; }
 .poster-card { width: 100%; border-radius: 4px; overflow: hidden; border: 1px solid #e3e3e3; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 .poster-img { width: 100%; display: block; }
 .poster-fallback { height: 350px; background: #eee; display: flex; align-items: center; justify-content: center; color: #aaa; }
 
-.overview { font-size: 15px; line-height: 1.6; color: #4a4a4a; white-space: pre-wrap; margin-top: 20px; }
+.main-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.overview {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #4a4a4a;
+  white-space: pre-wrap;
+  margin-top: 10px;
+}
+
+/* 섹션 공통 스타일 */
 .section-divider { height: 1px; background: #e3e3e3; margin: 40px 0; }
 .sub-title { font-size: 20px; font-weight: 800; color: #000; margin-bottom: 20px; }
 .no-data { color: #999; font-size: 14px; padding: 20px 0; }
 
+/* 모바일 대응 (768px 이하) */
 @media (max-width: 768px) {
-  .top-section { flex-direction: column; }
-  .poster-area { width: 160px; margin: 0 auto; margin-top: -100px; position: relative; z-index: 10; }
+  .top-section {
+    flex-direction: column;
+    align-items: center;
+  }
+  .poster-area {
+    width: 160px;
+    margin-top: -100px;
+    position: relative;
+    z-index: 10;
+  }
   .poster-card { border: 2px solid white; }
+  .main-info {
+    width: 100%;
+    text-align: center;
+  }
 }
 </style>

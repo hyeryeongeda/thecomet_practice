@@ -15,10 +15,6 @@
           <span class="dot">・</span>
           <span>{{ movie.production_countries?.[0]?.name }}</span>
         </div>
-
-        <div class="bottom-stats">
-          누적 관객 {{ movie.vote_count?.toLocaleString() }}명
-        </div>
       </div>
     </div>
   </section>

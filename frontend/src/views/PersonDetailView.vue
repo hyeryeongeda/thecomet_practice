@@ -10,7 +10,21 @@
           <div v-else class="avatar fallback">No Image</div>
 
           <div class="meta">
-            <h1 class="name">{{ person.name }}</h1>
+            <div class="name-row">
+              <h1 class="name">{{ person.name }}</h1>
+              
+              <button class="heart-btn" type="button" @click.stop="onToggleLike">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="28" height="28" 
+                  viewBox="0 0 24 24" 
+                  :class="['heart-icon', { active: isLiked }]"
+                >
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+              </button>
+            </div>
+
             <p class="dept">{{ person.known_for_department || 'Person' }}</p>
 
             <div class="tabs">
@@ -51,15 +65,22 @@
 <script setup>
 import { onMounted, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fetchPersonDetail } from '@/api/comet'
+// ✅ [추가] Auth 스토어 및 API 함수 임포트
+import { useAuthStore } from '@/stores/auth'
+import { fetchPersonDetail, togglePersonLike, fetchMyLikedPeople } from '@/api/comet'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const tmdbId = computed(() => Number(route.params.tmdbId))
 const loading = ref(true)
 const person = ref(null)
 const tab = ref('cast')
+
+// ✅ [추가] 좋아요 상태 관리
+const likedIds = ref(new Set())
+const isLiked = computed(() => person.value && likedIds.value.has(person.value.id || person.value.tmdb_id))
 
 const profileSrc = computed(() => {
   const p = person.value?.profile_path
@@ -73,11 +94,60 @@ async function load() {
   try {
     person.value = await fetchPersonDetail(tmdbId.value)
     tab.value = (person.value?.cast?.length ?? 0) > 0 ? 'cast' : 'directors'
+    
+    // ✅ [추가] 로그인 상태라면 좋아요 목록 업데이트
+    if (authStore.isLoggedIn) {
+      await updateLikedList()
+    }
   } catch (e) {
     console.error(e)
     person.value = null
   } finally {
     loading.value = false
+  }
+}
+
+// ✅ [추가] 좋아요 목록 가져오기 함수
+async function updateLikedList() {
+  try {
+    const list = await fetchMyLikedPeople()
+    likedIds.value = new Set(list.map(x => x.tmdb_id))
+  } catch (e) {
+    console.log('좋아요 목록 로드 실패')
+  }
+}
+
+// ✅ [추가] 좋아요 토글 핸들러
+async function onToggleLike() {
+  if (!authStore.isLoggedIn) return alert('로그인이 필요합니다.')
+  if (!person.value) return
+
+  const p = person.value
+  const pId = p.id || p.tmdb_id
+
+  try {
+    // UI 선반영 (낙관적 업데이트)
+    const next = new Set(likedIds.value)
+    if (next.has(pId)) next.delete(pId)
+    else next.add(pId)
+    likedIds.value = next
+
+    // API 호출
+    const res = await togglePersonLike(pId, {
+      name: p.name,
+      profile_path: p.profile_path,
+      known_for_department: p.known_for_department
+    })
+    
+    // 서버 응답으로 최종 확인 (혹시 다르면 보정)
+    if (res.liked) next.add(pId)
+    else next.delete(pId)
+    likedIds.value = new Set(next)
+
+  } catch (error) {
+    console.error("좋아요 토글 실패:", error)
+    alert("오류가 발생했습니다.")
+    await updateLikedList() // 에러 시 원래 상태 복구
   }
 }
 
@@ -97,8 +167,38 @@ watch(tmdbId, load)
 .avatar { width:88px; height:88px; border-radius:18px; object-fit:cover; background:#f2f2f2; }
 .fallback { display:grid; place-items:center; color:#777; }
 
+.meta { display: flex; flex-direction: column; justify-content: center; }
+
+/* ✅ [추가] 이름과 하트 버튼 가로 정렬 */
+.name-row { display: flex; align-items: center; gap: 8px; }
+
 .name { margin:0; font-size:28px; font-weight:900; }
 .dept { margin:6px 0 0; color:#666; font-weight:700; }
+
+/* ✅ [추가] 하트 버튼 스타일 (테두리 없음, 배경 없음) */
+.heart-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+.heart-btn:hover { transform: scale(1.1); }
+
+/* ✅ [추가] 하트 아이콘 (RecommendPerson.vue 스타일 차용) */
+.heart-icon {
+  fill: #e0e0e0; /* 기본 회색 */
+  stroke: #ccc;
+  stroke-width: 1;
+  transition: all 0.3s ease;
+}
+.heart-icon.active {
+  fill: #ff2f6e; /* 활성화 시 핑크/레드 */
+  stroke: #ff2f6e;
+}
 
 .tabs { display:flex; gap:10px; margin-top:12px; }
 .tabs button { height:36px; padding:0 14px; border-radius:999px; border:1px solid #ddd; background:#fff; font-weight:800; cursor:pointer; }

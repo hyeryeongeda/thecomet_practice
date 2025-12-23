@@ -2,14 +2,31 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import UserSetting, Follow
 
+# ✅ 네 프로젝트 경로에 맞게 수정!
+from reviews.models import Review      # 예: 리뷰 앱
+from movies.models import Movie        # 예: 영화 앱
+
+from django.db.models import Q
+
 User = get_user_model()
+
+class MovieBriefSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Movie
+        fields = ["tmdb_id", "title", "poster_path", "vote_average"]
+
 
 
 class UserSerializer(serializers.ModelSerializer):
     followers_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
     theme = serializers.SerializerMethodField()
-
+    
+    is_following = serializers.SerializerMethodField()
+    reviewed_movies = serializers.SerializerMethodField()
+    
+    
+    
     class Meta:
         model = User
         fields = [
@@ -23,6 +40,8 @@ class UserSerializer(serializers.ModelSerializer):
             "followers_count",
             "following_count",
             "theme",
+            "is_following",
+            "reviewed_movies",
         ]
 
     def get_followers_count(self, obj):
@@ -37,7 +56,40 @@ class UserSerializer(serializers.ModelSerializer):
         if hasattr(obj, "setting") and obj.setting:
             return obj.setting.theme
         return "white"
+    def get_reviewed_movies(self, obj):
+        # 해당 유저의 리뷰들에서 movie만 추출
+        qs = Review.objects.filter(user=obj).select_related("movie")
+        
+    def get_is_following(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        return Follow.objects.filter(from_user=request.user, to_user=obj).exists()
+    
+    
+    def get_reviewed_movies(self, obj):
+        qs = (
+            Review.objects
+            .filter(user=obj)
+            .select_related("movie")
+            # ✅ 코멘트 없는 것(=보고싶어요만 체크한 케이스) 제외
+            .filter(Q(content__isnull=False) & ~Q(content__exact=""))
+            # ✅ (선택) rating이 있는 “진짜 리뷰”만 보여주고 싶으면 이것도 추가
+            # .filter(rating__isnull=False)
+        )
+        seen = set()
+        movies = []
+        for r in qs:
+            m = getattr(r, "movie", None)
+            if not m:
+                continue
+            key = m.tmdb_id  # tmdb_id가 없다면 m.id 등으로 변경
+            if key in seen:
+                continue
+            seen.add(key)
+            movies.append(m)
 
+        return MovieBriefSerializer(movies, many=True).data
 
 class SignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)

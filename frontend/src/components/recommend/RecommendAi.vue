@@ -80,6 +80,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { postTasteChat } from '@/api/comet'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const chatWindow = ref(null)
@@ -88,11 +89,16 @@ const allChats = ref([])
 const currentChatIndex = ref(0) 
 const chatInput = ref('')
 const chatLoading = ref(false)
-
+const authStore = useAuthStore()
 const currentChat = computed(() => {
   return allChats.value[currentChatIndex.value] || { messages: [], movies: [], title: '' }
 })
-
+const posterUrl = (p) => p ? `https://image.tmdb.org/t/p/w200${p}` : ''
+const goMovie = (id) => router.push({ name: 'movie-detail', params: { tmdbId: id } })
+const scrollToBottom = async () => { 
+  await nextTick()
+  if (chatWindow.value) chatWindow.value.scrollTop = chatWindow.value.scrollHeight 
+}
 onMounted(() => {
   const savedData = localStorage.getItem('comet_ai_history')
   if (savedData) {
@@ -166,12 +172,39 @@ async function sendChat() {
   }
 }
 
-const posterUrl = (p) => p ? `https://image.tmdb.org/t/p/w200${p}` : ''
-const goMovie = (id) => router.push({ name: 'movie-detail', params: { tmdbId: id } })
-const scrollToBottom = async () => { 
-  await nextTick()
-  if (chatWindow.value) chatWindow.value.scrollTop = chatWindow.value.scrollHeight 
+//  로그인 유저별 저장 키 (id 우선, 없으면 username)
+const storageKey = computed(() => {
+  const u = authStore.user
+  const keyPart = u?.id ?? u?.username
+  return keyPart ? `comet_ai_history_${keyPart}` : null
+})
+
+function loadChats() {
+  if (!storageKey.value) return
+
+  const saved = localStorage.getItem(storageKey.value)
+  if (saved) {
+    allChats.value = JSON.parse(saved)
+    currentChatIndex.value = 0
+  } else {
+    allChats.value = []
+    createNewChat()
+  }
 }
+
+//  user가 세팅되는 순간(로그인/부트스트랩 완료)에 해당 유저 채팅 로드
+watch(storageKey, (k) => {
+  if (!k) return
+  loadChats()
+}, { immediate: true })
+
+//  채팅 변경 시 해당 유저 키로 저장
+watch(allChats, (newVal) => {
+  if (!storageKey.value) return
+  localStorage.setItem(storageKey.value, JSON.stringify(newVal))
+}, { deep: true })
+
+
 </script>
 
 <style scoped>

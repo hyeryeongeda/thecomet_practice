@@ -34,13 +34,24 @@
         </div>
         <span class="act-label">보고싶어요</span>
       </button>
+
+      <button class="act-btn" @click="$emit('open-trailer')">
+        <div class="icon-box">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="svg-icon">
+            <path d="M10.25 15.75l6-3.75-6-3.75v7.5zm11.72-8.31c-.26-.98-1.03-1.75-2.01-2.02C18.2 5 12 5 12 5s-6.2 0-7.96.42c-.98.27-1.75 1.04-2.01 2.02C1.61 9.46 1.61 12 1.61 12s0 2.54.42 4.56c.26.98 1.03 1.75 2.01 2.02C5.8 19 12 19 12 19s6.2 0 7.96-.42c.98-.27 1.75-1.04 2.01-2.02.42-2.02.42-4.56.42-4.56s0-2.54-.42-4.56z" />
+          </svg>
+        </div>
+        <span class="act-label">트레일러</span>
+      </button>
+
+
     </div>
   </div>
 </template>
 
 <script setup>
 defineProps(['isLiked', 'isWished', 'starWidth', 'voteScore', 'voteCount'])
-defineEmits(['toggle-like', 'toggle-wish', 'open-write-modal'])
+defineEmits(['toggle-like', 'toggle-wish', 'open-write-modal', 'open-trailer'])
 </script>
 
 <style scoped>
@@ -131,5 +142,40 @@ defineEmits(['toggle-like', 'toggle-wish', 'open-write-modal'])
   height: 24px; 
   fill: currentColor; /* 부모인 .act-btn의 color를 따르도록 설정 */
   transition: fill 0.2s;
+}
+
+/* 예고편 모달 스타일 */
+.trailer-modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.trailer-content {
+  position: relative;
+  width: 90%;
+  max-width: 1000px;
+  aspect-ratio: 16 / 9;
+}
+
+.trailer-content iframe {
+  width: 100%;
+  height: 100%;
+}
+
+.close-btn {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
 }
 </style>

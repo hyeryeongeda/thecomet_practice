@@ -146,7 +146,6 @@ async function toggleLike(p) {
   }
 }
 
-// 기존 변수들
 const q = ref('')
 const loading = ref({ search: false, detail: false })
 const peopleList = ref([]) 

@@ -71,8 +71,15 @@
     <section class="sec">
       <div class="sec-head">
         <h2 class="sec-title">최근 코멘트</h2>
-        <button class="more" @click="go('/mypage')">더보기</button>
+        <button class="more" @click="showListModal = true">더보기</button>
       </div>
+      <ReviewListModal
+        v-if="showListModal"
+        :reviews="recentReviews"
+        @close="showListModal = false"
+        @sort="handleSort"
+        @select="openReviewModalFromList"
+      />
       <p v-if="reviewsLoading" class="muted">불러오는 중...</p>
       
       <div v-else class="review-slider-wrapper">
@@ -120,12 +127,12 @@ import {
 import MovieRow from '@/components/movie/MovieRow.vue'
 import ReviewCard from '@/components/review/ReviewCard.vue'
 import ReviewDetailModal from '@/components/review/ReviewDetailModal.vue'
-
+import ReviewListModal from '@/components/review/ReviewListModal.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/original'
 
-/* --- [배너 로직: 동적 데이터 & 자동 슬라이드] --- */
+// 배너 배열 구성 함수
 const currentIndex = ref(0)
 const banners = ref([])
 const slideTimer = ref(null)
@@ -134,7 +141,7 @@ const slideTimer = ref(null)
 function setupBanners() {
   const list = []
 
-  // 1. 최신 개봉작 랜덤 배너
+  // 1. 최신 개봉작 랜덤 배너 (기존 유지)
   if (nowPlaying.value.length > 0) {
     const randomIdx = Math.floor(Math.random() * nowPlaying.value.length)
     const movie = nowPlaying.value[randomIdx]
@@ -147,9 +154,20 @@ function setupBanners() {
     })
   }
 
-  // 2. 최근 리뷰 배너
+  // 2. 최근 리뷰 배너 (수정됨: 본인 제외 & 랜덤 추출)
   if (recentReviews.value.length > 0) {
-    const review = recentReviews.value[0]
+    const myUsername = authStore.user?.username
+    
+    // 내 아이디와 다른 유저의 리뷰만 필터링
+    const othersReviews = recentReviews.value.filter(r => r.user?.username !== myUsername)
+    
+    // 보여줄 리뷰 후보 선정 (남의 리뷰가 있으면 그 중에서, 없으면 전체에서)
+    const targetPool = othersReviews.length > 0 ? othersReviews : recentReviews.value
+    
+    // 랜덤 인덱스 선택
+    const randomReviewIdx = Math.floor(Math.random() * targetPool.length)
+    const review = targetPool[randomReviewIdx]
+
     list.push({
       image: review.movie?.backdrop_path ? `${TMDB_IMAGE_BASE}${review.movie.backdrop_path}` : 'https://via.placeholder.com/1600x685?text=User+Review',
       link: `/movies/${review.movie?.tmdb_id}`,
@@ -159,7 +177,7 @@ function setupBanners() {
     })
   }
 
-  // 3. 가이드 페이지 배너
+  // 3. 가이드 페이지 배너 (기존 유지)
   list.push({
     image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=2000&auto=format&fit=crop',
     link: '/guide',
@@ -198,7 +216,6 @@ function goBannerLink(link) {
   if (link && link !== '#') router.push(link)
 }
 
-/* --- [기존 데이터 로딩 및 리뷰 로직] --- */
 const loading = ref(false)
 const popular = ref([])
 const nowPlaying = ref([])
@@ -286,6 +303,23 @@ onMounted(() => {
 onUnmounted(() => {
   stopAutoSlide()
 })
+
+const showListModal = ref(false)
+
+// 2. 정렬 함수 (ReviewListModal의 @sort 대응)
+function handleSort(sortType) {
+  if (sortType === 'likes') {
+    recentReviews.value.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0))
+  } else if (sortType === 'latest') {
+    recentReviews.value.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  }
+}
+
+// 3. 리스트 모달에서 하나를 클릭했을 때의 처리
+function openReviewModalFromList(review) {
+  showListModal.value = false // 리스트 모달 닫기
+  openReviewModal(review)    // 기존에 만든 상세 모달 열기 함수 호출
+}
 </script>
 
 <style scoped>

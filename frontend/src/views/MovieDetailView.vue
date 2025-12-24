@@ -25,7 +25,20 @@
               @toggle-like="onToggleLike"
               @toggle-wish="onToggleWish"
               @open-write-modal="openWriteModal"
-            />
+              @open-trailer="openTrailer"  />
+
+            <div v-if="showTrailerModal" class="trailer-modal-overlay" @click="showTrailerModal = false">
+              <div class="trailer-content" @click.stop>
+                <iframe
+                  v-if="videoKey"
+                  :src="`https://www.youtube.com/embed/${videoKey}?autoplay=1`"
+                  frameborder="0"
+                  allow="autoplay; encrypted-media; fullscreen"
+                  allowfullscreen
+                ></iframe>
+                <button class="close-btn" @click="showTrailerModal = false">×</button>
+              </div>
+            </div>
             
             <p class="overview">{{ movie.overview || '등록된 줄거리가 없습니다.' }}</p>
           </div>
@@ -90,8 +103,7 @@ import {
   fetchMovieDetail, fetchMovieReviews, fetchSimilarMovies, fetchMovies, 
   toggleMovieLike, fetchMyLikes, createMovieReview, fetchReviewComments,
   createReviewComment, fetchMyActivity, toggleReviewLike, toggleMovieWish,
-  deleteReview, updateReview, fetchMyReview
-} from '@/api/comet'
+  deleteReview, updateReview, fetchMyReview ,searchYoutubeTrailer } from '@/api/comet'
 
 // 컴포넌트 임포트
 import MovieRow from '@/components/movie/MovieRow.vue'
@@ -107,6 +119,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const tmdbId = computed(() => route.params.tmdbId)
+
 
 // 상태 데이터
 const loading = ref(true)
@@ -297,6 +310,23 @@ function handleReplyDelete(commentId) {
 
 onMounted(loadAll)
 watch(() => tmdbId.value, loadAll)
+
+const showTrailerModal = ref(false)
+const videoKey = ref('')
+
+async function openTrailer() {
+  if (!movie.value) return;
+
+  // 영화 제목으로 유튜브에서 직접 검색
+  const videoId = await searchYoutubeTrailer(movie.value.title);
+
+  if (videoId) {
+    videoKey.value = videoId; // 검색된 ID 저장
+    showTrailerModal.value = true;
+  } else {
+    alert('유튜브에서 예고편을 찾을 수 없습니다.');
+  }
+}
 </script>
 
 <style scoped>
@@ -389,11 +419,53 @@ watch(() => tmdbId.value, loadAll)
     z-index: 10;
   }
   .poster-card { 
-    border: 2px solid var(--primary); /* 모바일 포인트는 유지 가능 */
+    border: 2px solid var(--primary); 
   }
   .main-info {
     width: 100%;
     text-align: center;
   }
 }
+
+.trailer-modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.9); 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999; 
+}
+
+.trailer-content {
+  position: relative;
+  width: 90%;
+  max-width: 1000px;
+  aspect-ratio: 16 / 9; 
+  background: #000;
+}
+
+.trailer-content iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.close-btn {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 35px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: var(--primary);
+}
+
 </style>

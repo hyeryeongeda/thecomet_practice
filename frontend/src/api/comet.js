@@ -321,4 +321,23 @@ export const withdrawAccount = (password = '') => {
 
   return api.post('/accounts/withdraw/', { password })
 }
+import axios from 'axios'
+const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
+export const searchYoutubeTrailer = async (movieTitle) => {
+  try {
+    const response = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+      params: {
+        part: 'snippet',
+        q: `${movieTitle} 예고편`,
+        type: 'video',
+        maxResults: 1,
+        key: YOUTUBE_API_KEY,
+      }
+    });
+    return response.data.items[0]?.id?.videoId || null;
+  } catch (error) {
+    console.error("유튜브 API 검색 실패:", error);
+    return null;
+  }
+};

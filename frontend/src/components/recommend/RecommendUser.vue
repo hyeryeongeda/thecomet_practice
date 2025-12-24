@@ -36,7 +36,6 @@
             <button class="btn" type="button" @click="goProfile(spotlight.username)">
               프로필 보기
             </button>
-
             <button
               v-if="spotlightSource === 'suggested'"
               class="btnOutline"
@@ -213,6 +212,7 @@ async function load() {
   error.value = ''
   try {
     const res = await fetchUserRecommends()
+    console.log("백엔드 응답 데이터:", res)
     payload.value = res || { top_reviewers: [], top_liked: [], suggested: [] }
   } catch (e) {
     console.error(e)

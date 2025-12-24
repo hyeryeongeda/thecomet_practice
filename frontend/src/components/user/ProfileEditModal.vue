@@ -6,7 +6,10 @@
           <img 
             :src="avatarSrc" 
             alt="Profile" 
-            @error="(e) => (e.target.src = '/default-avatar.png')" 
+            @error="(e) => {
+              e.target.onerror = null
+              e.target.src = DEFAULT_AVATAR;
+            }" 
           />
         </div>
         <input
@@ -104,6 +107,8 @@ import { useAuthStore } from '@/stores/auth'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import { updateMyProfile, withdrawAccount } from '@/api/comet'
 
+const DEFAULT_AVATAR = '/default-avatar.png';
+const IMAGE_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'; // 환경변수 활용 권장
 const props = defineProps({
   user: Object,
 })
@@ -133,36 +138,39 @@ const withdraw = reactive({
   error: '',
 })
 
-// --- 이미지 경로 처리 (핵심 수정) ---
+// --- 이미지 경로 처리
 const avatarSrc = computed(() => {
-  // 1. 사용자가 새로 선택한 미리보기 파일이 있다면 최우선
-  if (previewUrl.value) return previewUrl.value
+  // 1. 새 파일 미리보기
+  if (previewUrl.value) return previewUrl.value;
 
-  // 2. 서버에서 넘어온 프로필 이미지가 있다면
-  if (props.user?.profile_image) {
-    const path = props.user.profile_image
-    // 이미 전체 주소(http...)라면 그대로 반환, 아니라면 백엔드 주소 결합
-    return path.startsWith('http') ? path : `http://localhost:8000${path}`
+  // 2. 기존 프로필 이미지
+  const path = props.user?.profile_image;
+  if (path) {
+    return path.startsWith('http') ? path : `${IMAGE_BASE_URL}${path}`;
   }
 
-  // 3. 둘 다 없으면 기본 이미지
-  return '/default-avatar.png'
-})
+  // 3. 기본값
+  return DEFAULT_AVATAR;
+});
 
 // --- 파일 관련 로직 ---
 function openFilePicker() {
   fileInput.value?.click()
 }
 
+// --- 파일 변경 핸들러 ) ---
 function onFileChange(e) {
-  const file = e.target.files?.[0]
-  if (!file) return
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-  // 기존 미리보기 URL 메모리 해제 (성능 최적화)
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+  // 기존 미리보기 URL 메모리 해제
+  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value);
 
-  selectedFile.value = file
-  previewUrl.value = URL.createObjectURL(file)
+  selectedFile.value = file;
+  previewUrl.value = URL.createObjectURL(file);
+  
+  // input 초기화 (같은 파일을 다시 선택해도 change 이벤트가 발생하게 함)
+  e.target.value = ''; 
 }
 
 // 컴포넌트가 사라질 때 가비지 컬렉션

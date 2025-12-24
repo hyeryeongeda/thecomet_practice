@@ -198,24 +198,32 @@ const getCSSVar = (varName) => {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim()
 }
 
-// 📊 차트 데이터 설정 (차트 내부의 선, 채우기 색상 스타일)
+// 📊 차트 데이터 설정 
 const chartData = computed(() => {
-  // 테마가 바뀔 때마다 이 계산이 다시 실행됩니다.
   const primaryColor = getCSSVar('--primary') || '#e50914'
-  const primaryWeak = getCSSVar('--primary-weak') || 'rgba(229, 9, 20, 0.2)'
+  const primaryWeak = getCSSVar('--primary-weak') || 'rgba(229, 9, 20, 0.4)' // 채우기 투명도를 약간 높임
 
   return {
     labels: GENRE_LABELS,
     datasets: [{
       label: '선호도',
-      data: GENRE_LABELS.map(l => radarScores.value[l] || 0),
-      backgroundColor: primaryWeak,    // ✅ --primary-weak 변수 적용
-      borderColor: primaryColor,      // ✅ --primary 변수 적용
-      borderWidth: 2,
-      pointBackgroundColor: primaryColor,
-      pointBorderColor: '#fff',
-      pointHoverBackgroundColor: '#fff',
-      pointHoverBorderColor: primaryColor
+      // 🔥 0점인 항목도 최소 7~10점 정도는 주어 도형의 '뼈대'가 유지되게 합니다.
+      data: GENRE_LABELS.map(l => {
+        const score = radarScores.value[l] || 0
+        return score < 10 ? 10 : score // 최소 10점을 깔아주면 훨씬 연결되어 보입니다.
+      }),
+      
+      backgroundColor: primaryWeak,
+      borderColor: primaryColor,
+      borderWidth: 4,              // 선을 아주 두껍게 하여 경계선을 강조
+      tension: 0,                 // 0으로 설정하여 완벽한 '직선' 유지
+      
+      pointRadius: 4,             // 점을 키워 선의 연결 부위를 강조
+      pointBackgroundColor: '#fff', // 점 내부를 흰색으로 하여 포인트 강조
+      pointBorderColor: primaryColor,
+      pointBorderWidth: 2,
+      
+      fill: true                  // 내부를 확실하게 채움
     }]
   }
 })

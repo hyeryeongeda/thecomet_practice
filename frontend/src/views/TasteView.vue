@@ -121,6 +121,28 @@ const router = useRouter()
 
 // 고정 설정값
 const GENRE_LABELS = ['드라마','SF','판타지','로맨스','뮤지컬','애니메이션','전쟁','가족','다큐멘터리','스릴러','공포','액션']
+// 🔥 [추가] 2. 한글 장르를 TMDB 데이터(영어/한글)와 매칭시켜주는 지도
+const GENRE_MAP = {
+  'SF': ['Science Fiction', 'SF'],
+  '판타지': ['Fantasy', '판타지'],
+  '로맨스': ['Romance', '로맨스', '멜로'],
+  '뮤지컬': ['Music', '음악', '뮤지컬'],
+  '애니메이션': ['Animation', '애니메이션'],
+  '전쟁': ['War', '전쟁'],
+  '가족': ['Family', '가족'],
+  '다큐멘터리': ['Documentary', '다큐멘터리'],
+  '스릴러': ['Thriller', '스릴러'],
+  '공포': ['Horror', '공포'],
+  '액션': ['Action', '액션'],
+  '드라마': ['Drama', '드라마'],
+  '범죄': ['Crime', '범죄'],
+  '모험': ['Adventure', '모험'],
+  '코미디': ['Comedy', '코미디'],
+  '미스터리': ['Mystery', '미스터리'],
+  '역사': ['History', '역사'],
+  '서부': ['Western', '서부']
+}
+
 
 // 상태 변수
 const stats = ref({ watchedCount: 0, topGenre: '-', avgRating: 0, recentMovieTitle: '' })
@@ -140,12 +162,31 @@ const modalTitle = computed(() => {
   return '내가 본 영화 전체 목록'
 })
 
-// 필터링 로직
+
+
+// 🔥 [수정] 3. 필터링 로직 변경 (문자열/객체 데이터 모두 호환)
 const filteredMovies = computed(() => {
   let list = [...watchedMovies.value]
   
   if (filterType.value === 'genre' && selectedGenre.value) {
-    list = list.filter(m => m.genres?.includes(selectedGenre.value))
+    const keywords = GENRE_MAP[selectedGenre.value] || [selectedGenre.value]
+    
+    list = list.filter(m => {
+        // 장르 데이터가 없으면 제외
+        if (!m.genres || m.genres.length === 0) return false
+        
+        return m.genres.some(movieGenre => {
+            // 🔥 핵심: 데이터가 객체({name: 'SF'})라면 .name을 꺼내고, 문자열이면 그대로 씀
+            const gName = (typeof movieGenre === 'object' && movieGenre.name) 
+                          ? movieGenre.name 
+                          : movieGenre;
+            
+            // 안전하게 문자열로 변환 후 비교
+            return keywords.some(k => 
+                String(gName).toLowerCase().includes(k.toLowerCase())
+            )
+        })
+    })
   } else if (filterType.value === 'rating' && selectedRating.value > 0) {
     list = list.filter(m => Math.floor(m.my_rating) === Number(selectedRating.value))
   }

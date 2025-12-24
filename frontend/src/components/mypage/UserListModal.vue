@@ -39,7 +39,7 @@ function fullUrl(path) {
 
 function goProfile(username) {
   emit('close') // 이동 전 모달 닫기
-  router.push(`/user/${username}`)
+  router.push(`/users/${username}`)
 }
 </script>
 <style scoped>

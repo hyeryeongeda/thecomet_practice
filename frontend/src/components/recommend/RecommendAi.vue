@@ -26,18 +26,44 @@
       <div class="chat-layout-wrapper">
         
         <div class="chat-display" ref="chatWindow">
-          <div v-for="(m, idx) in currentChat.messages" :key="idx" :class="['msg-row', m.role]">
-            <div v-if="m.role === 'assistant'" class="bot-icon">🤖</div>
-            <div class="bubble">{{ m.content }}</div>
+          <div v-for="(m, idx) in currentChat.messages" :key="idx" class="message-group">
+            
+            <div :class="['msg-row', m.role]">
+              <div v-if="m.role === 'assistant'" class="bot-icon">🤖</div>
+              <div class="bubble">{{ m.content }}</div>
+            </div>
+
+            <div v-if="m.movies && m.movies.length" class="movie-results-in-chat">
+              <div 
+                v-for="movie in m.movies" 
+                :key="movie.tmdb_id" 
+                class="horizontal-card"
+                @click="goMovie(movie.tmdb_id)"
+              >
+                <div class="poster-box">
+                  <img :src="posterUrl(movie.poster_path)" :alt="movie.title" loading="lazy" />
+                </div>
+
+                <div class="info-box">
+                  <div class="info-top">
+                    <h4 class="m-title">{{ movie.title }}</h4>
+                    <span class="stars">★ {{ movie.vote_average ? movie.vote_average.toFixed(1) : '0.0' }}</span>
+                  </div>
+
+                  <div class="ai-reason-box" v-if="movie.ai_reason">
+                    <span class="check-icon">✔</span>
+                    <p class="reason-text">{{ movie.ai_reason }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           <div v-if="chatLoading" class="msg-row assistant">
             <div class="bot-icon">🤖</div>
-            <div class="bubble loading">분석 중...</div>
+            <div class="bubble loading">열심히 영화를 찾고 있어요... 🎬</div>
           </div>
-
-          <div v-if="currentChat.movies?.length" class="movie-results">
-            </div>
         </div>
 
         <section class="input-section">
@@ -79,15 +105,21 @@ const currentChatIndex = ref(0)
 const chatInput = ref('')
 const chatLoading = ref(false)
 const authStore = useAuthStore()
+
 const currentChat = computed(() => {
-  return allChats.value[currentChatIndex.value] || { messages: [], movies: [], title: '' }
+  return allChats.value[currentChatIndex.value] || { messages: [], title: '' }
 })
+
 const posterUrl = (p) => p ? `https://image.tmdb.org/t/p/w200${p}` : ''
 const goMovie = (id) => router.push({ name: 'movie-detail', params: { tmdbId: id } })
+
 const scrollToBottom = async () => { 
   await nextTick()
-  if (chatWindow.value) chatWindow.value.scrollTop = chatWindow.value.scrollHeight 
+  if (chatWindow.value) {
+    chatWindow.value.scrollTop = chatWindow.value.scrollHeight 
+  }
 }
+
 onMounted(() => {
   const savedData = localStorage.getItem('comet_ai_history')
   if (savedData) {
@@ -105,8 +137,7 @@ function createNewChat() {
   const newChat = {
     id: Date.now(),
     title: '',
-    messages: [{ role: 'assistant', content: '안녕하세요! 원하시는 영화의 분위기나 특징을 말씀해 주세요.' }],
-    movies: []
+    messages: [{ role: 'assistant', content: '안녕하세요! 원하시는 영화의 분위기나 특징을 말씀해 주세요.', movies: [] }],
   }
   allChats.value.unshift(newChat)
   currentChatIndex.value = 0
@@ -133,7 +164,8 @@ async function sendChat() {
   const target = allChats.value[currentChatIndex.value]
   if (!target.title) target.title = text.substring(0, 10) + (text.length > 10 ? '...' : '')
 
-  target.messages.push({ role: 'user', content: text })
+  // 내 메시지 추가
+  target.messages.push({ role: 'user', content: text, movies: [] })
   chatInput.value = ''
   chatLoading.value = true
   await scrollToBottom()
@@ -142,26 +174,32 @@ async function sendChat() {
     const history = target.messages.map(m => ({ role: m.role, content: m.content }))
     const res = await postTasteChat({ message: text, history })
 
-    target.messages.push({ role: 'assistant', content: res.answer })
-    
     const rawMovies = res.movies || []
     const reasons = res.recommended_reasons || {}
     
-    target.movies = rawMovies.map(m => ({
+    // 👇 [핵심 수정] 영화 데이터를 메시지 안에 포함시킴
+    const processedMovies = rawMovies.map(m => ({
       ...m,
       tmdb_id: m.tmdb_id || m.id,
-      ai_reason: reasons[m.title] || reasons[m.name]
+      // 👇 [핵심 수정] 이유 매칭 로직 수정 (ID 기준)
+      ai_reason: reasons[m.tmdb_id] || reasons[String(m.tmdb_id)] || reasons[m.id]
     }))
 
+    target.messages.push({ 
+      role: 'assistant', 
+      content: res.answer, 
+      movies: processedMovies // 영화 목록을 이 메시지에 붙임!
+    })
+
   } catch (e) {
-    target.messages.push({ role: 'assistant', content: '죄송합니다. 서버와 통신 중 오류가 발생했습니다.' })
+    target.messages.push({ role: 'assistant', content: '죄송합니다. 서버와 통신 중 오류가 발생했습니다.', movies: [] })
   } finally {
     chatLoading.value = false
     await scrollToBottom()
   }
 }
 
-//  로그인 유저별 저장 키 (id 우선, 없으면 username)
+//  로그인 유저별 저장 키
 const storageKey = computed(() => {
   const u = authStore.user
   const keyPart = u?.id ?? u?.username
@@ -170,7 +208,6 @@ const storageKey = computed(() => {
 
 function loadChats() {
   if (!storageKey.value) return
-
   const saved = localStorage.getItem(storageKey.value)
   if (saved) {
     allChats.value = JSON.parse(saved)
@@ -181,23 +218,18 @@ function loadChats() {
   }
 }
 
-//  user가 세팅되는 순간(로그인/부트스트랩 완료)에 해당 유저 채팅 로드
 watch(storageKey, (k) => {
   if (!k) return
   loadChats()
 }, { immediate: true })
 
-//  채팅 변경 시 해당 유저 키로 저장
 watch(allChats, (newVal) => {
   if (!storageKey.value) return
   localStorage.setItem(storageKey.value, JSON.stringify(newVal))
 }, { deep: true })
-
-
 </script>
 
 <style scoped>
-
 .ai-recommend-layout { display: flex; gap: 20px; max-width: 1100px; margin: 0 auto; height: 650px; }
 
 /* 왼쪽 사이드바 */
@@ -224,7 +256,9 @@ textarea { flex: 1; border: none; outline: none; resize: none; height: 60px; fon
 .tag-btn { padding: 6px 12px; border-radius: 15px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px; font-weight: 800; cursor: pointer; min-height: 0; }
 
 /* 채팅 출력 영역 */
-.chat-display { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.chat-display { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+.message-group { display: flex; flex-direction: column; gap: 10px; } /* 메시지와 영화 카드를 묶는 그룹 */
+
 .msg-row { display: flex; gap: 10px; align-items: flex-start; }
 .msg-row.user { justify-content: flex-end; }
 .bot-icon { font-size: 24px; padding: 4px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg); }
@@ -232,8 +266,8 @@ textarea { flex: 1; border: none; outline: none; resize: none; height: 60px; fon
 .assistant .bubble { background: var(--bg); border: 1px solid var(--border); color: var(--text); }
 .user .bubble { background: var(--primary); color: #fff; }
 
-/* 가로형 영화 카드 레이아웃 */
-.movie-results { display: flex; flex-direction: column; gap: 15px; padding-left: 45px; }
+/* 메시지 내부 영화 결과 스타일 (채팅 흐름 안에 위치) */
+.movie-results-in-chat { display: flex; flex-direction: column; gap: 15px; padding-left: 45px; margin-top: 5px; }
 .horizontal-card { display: flex; gap: 15px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); box-shadow: 0 4px 6px rgba(0,0,0,0.02); cursor: pointer; transition: 0.2s; }
 .horizontal-card:hover { transform: scale(1.01); border-color: var(--primary); }
 .poster-box { width: 70px; aspect-ratio: 2/3; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: #000; }

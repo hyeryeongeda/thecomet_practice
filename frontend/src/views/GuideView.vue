@@ -1,44 +1,123 @@
-<template>
-  <div class="guide-page">
-    <div class="comet-loader-layer">
-      <div class="comet-container">
-        <div class="comet"></div>
-        <div class="star-particle p1"></div>
-        <div class="star-particle p2"></div>
-        <div class="star-particle p3"></div>
-        <div class="star-particle p4"></div>
-        <div class="star-particle p5"></div>
+  <section class="guide-section">
+    <h2 class="sec-title">📊 취향 분석 차트 보는 법</h2>
+    <div class="guide-card">
+      <h3 class="card-title">한눈에 요약</h3>
+      <p class="card-desc">
+        취향 분석은 <b>유저가 남긴 리뷰/평점/좋아요/보관함</b> 활동을 기반으로
+        “어떤 영화를 좋아하는지”를 시각화한 페이지입니다. 데이터가 쌓일수록 더 정확해집니다!
+      </p>
+
+      <div class="card-block">
+        <h4 class="block-title">1) 최애 장르(막대 차트)</h4>
+        <ul class="bullet">
+          <li><b>막대가 높을수록</b> 해당 장르를 더 자주 선택/좋아요/리뷰한 것입니다.</li>
+          <li>장르가 비슷한데도 차이가 난다면, <b>최근에 본 영화 영향</b>이 클 수 있습니다.</li>
+          <li>특정 장르가 너무 튀면 → 그 장르 중심으로 추천을 받는 게 효율적입니다.</li>
+        </ul>
+        <div class="example-box">
+          <b>예시</b> 로맨스 &gt; 드라마 &gt; 코미디 순이라면<br />
+          → “따뜻한 감정선 + 관계 중심 스토리” 취향일 확률이 높습니다.
+        </div>
+      </div>
+
+      <div class="card-block">
+        <h4 class="block-title">2) 좋아한 인물/태그(있다면)</h4>
+        <ul class="bullet">
+          <li>좋아요/리뷰가 많이 쌓인 인물(배우/감독)은 <b>유저의 ‘안전한 선택지’</b>가 될 가능성이 큽니다.</li>
+          <li>태그(예: 성장, 힐링, 반전, 실화 기반 등)는 <b>장르보다 더 정확한 취향 힌트</b>가 될 때가 많습니다.</li>
+        </ul>
+      </div>
+
+      <div class="card-block">
+        <h4 class="block-title">3) 평점 경향(있다면)</h4>
+        <ul class="bullet">
+          <li><b>평균 별점이 높은 편</b>이면: 영화 선택이 안정적이거나, 좋아하는 것만 골라 보는 스타일일 수 있습니다.</li>
+          <li><b>평점 편차가 큰 편</b>이면: 새로운 장르/실험적인 영화도 자주 시도하는 타입일 수 있습니다.</li>
+        </ul>
+      </div>
+
+      <div class="tip-row">
+        <span class="tip-badge">TIP</span>
+        <p class="tip-text">
+          차트가 비어 보이면, 먼저 <b>리뷰 2~3개</b>만 쌓아도 변화가 확 느껴질 것입니다.
+        </p>
       </div>
     </div>
+  </section>
 
-    <div class="guide-content-wrapper delayed-fade-up">
-      <div class="guide-container">
-        <header class="guide-header">
-          <h1 class="guide-title">서비스 가이드</h1>
-          <p class="guide-sub">혜성과 함께 당신의 숨겨진 영화 DNA를 찾아보세요.</p>
-        </header>
+  <section class="guide-section">
+    <h2 class="sec-title">🤖 AI 추천 제대로 받는 법</h2>
+    <div class="guide-card">
+      <h3 class="card-title">추천 프롬프트는 “조건 + 분위기 + 예시”가 핵심</h3>
+      <ul class="bullet">
+        <li><b>조건</b>: 언제/어떤 상황에서 볼 건지 (혼자, 연말, 출근 전, 잠들기 전)</li>
+        <li><b>분위기</b>: 따뜻한/긴장감/웃긴/잔잔한/눈물 버튼</li>
+        <li><b>예시</b>: 좋아했던 영화 1~2개(가능하면)</li>
+      </ul>
 
-        <section class="guide-section">
-          <h2 class="sec-title">📊 취향 분석 차트 보는 법</h2>
-          <div class="guide-card">
-            <p>여기에 차트 설명 콘텐츠가 들어갑니다.</p>
-          </div>
-        </section>
+      <div class="example-box">
+        <b>추천 예시</b><br />
+        • “겨울에 보기 좋은 잔잔한 로맨스, 해피엔딩, 2시간 이내로 추천해줘”<br />
+        • “기생충처럼 사회풍자 있는 스릴러, 너무 잔인한 건 제외”<br />
+        • “라라랜드 좋아했어. 음악/감성/색감 좋은 영화 추천해줘”
+      </div>
+
+      <div class="tip-row">
+        <span class="tip-badge">TIP</span>
+        <p class="tip-text">
+          추천 결과가 마음에 들면 <b>상세 페이지에서 찜/보관함</b>에 넣어두면 다음 추천 정확도가 더 올라갑니다.
+        </p>
       </div>
     </div>
-  </div>
+  </section>
+
+  <section class="guide-section">
+    <h2 class="sec-title">📁 보관함/좋아요가 취향에 반영되는 방식</h2>
+    <div class="guide-card">
+      <h3 class="card-title">보관함을 “취향 학습 데이터”로 쓰기</h3>
+      <ul class="bullet">
+        <li><b>보고 싶은 영화</b>: 다음에 볼 후보 저장용 (추천 품질에도 힌트가 됨)</li>
+        <li><b>봤던 영화</b>: 시청 기록 (취향 분석의 기반 데이터)</li>
+        <li><b>코멘트/리뷰</b>: 취향 분석에서 가장 영향이 큰 데이터 (감상 포인트가 들어있기 때문)</li>
+        <li><b>좋아요</b>: “이건 내 취향”을 빠르게 찍어주는 버튼 (장르/인물 선호가 빨리 잡힘)</li>
+      </ul>
+
+      <div class="tip-row">
+        <span class="tip-badge">TIP</span>
+        <p class="tip-text">
+          <b>‘좋아요만 잔뜩’</b>보다 <b>리뷰/한줄 코멘트 1~2개</b>가 취향 분석엔 훨씬 강력해.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section">
+    <h2 class="sec-title">❓ 자주 묻는 질문</h2>
+    <div class="guide-card">
+      <div class="qa">
+        <p class="q">Q. 차트가 이상해 보여요 / 데이터가 바로 반영이 안 돼요.</p>
+        <p class="a">
+          A. 데이터가 적을 때는 특정 장르가 과하게 튀어 보일 수 있습니다.
+          그리고 저장 직후에는 네트워크/캐시 때문에 늦게 보일 수도 있습니다.
+          <b>새로고침</b>하거나 <b>다시 접속</b>하면 정상 반영되는 경우가 많습니다.
+        </p>
+      </div>
+
+      <div class="qa">
+        <p class="q">Q. 추천이 내 취향이랑 안 맞아요.</p>
+        <p class="a">
+          A. 추천 프롬프트에 <b>싫어하는 요소(예: 잔인함, 오픈엔딩, 공포)</b>를 같이 적어주면 정확도가 확 올라갑니다.
+        </p>
+      </div>
+    </div>
+  </section>
+
 </template>
 
 <style scoped>
-/* --- 기본 스타일 유지 --- */
 .guide-page { background: var(--bg); color: var(--text); min-height: 100vh; position: relative; overflow-x: hidden; }
 .guide-content-wrapper { padding: 120px 20px; }
 .guide-container { max-width: 900px; margin: 0 auto; }
-/* ... (기존 헤더, 섹션 스타일 생략 - 그대로 사용하시면 됩니다) ... */
-
-/* ----------------------------------------------------
-   🌠 혜성 애니메이션 스타일 (와구와구 버전)
----------------------------------------------------- */
 
 /* 로더 레이어: 화면을 덮고 클릭 방지 */
 .comet-loader-layer {
@@ -228,6 +307,168 @@
   opacity: 0.6;
 }
 
+/* 섹션 간격 */
+.guide-section {
+  margin-top: 26px;
+}
 
-</style>
+/* 섹션 타이틀 */
+.sec-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
 
+/* 카드 */
+.guide-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 18px;
+  box-shadow: var(--shadow);
+}
+
+/* 카드 내부 타이틀/설명 */
+.card-title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.card-desc {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+/* 블록(카드 안 구획) */
+.card-block {
+  padding: 14px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  margin-top: 12px;
+}
+
+.block-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+/* 리스트 */
+.bullet {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.bullet li {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.bullet b {
+  font-weight: 900;
+  color: var(--text);
+}
+
+/* 예시 박스 */
+.example-box {
+  margin-top: 12px;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* TIP 라인 */
+.tip-row {
+  margin-top: 14px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.tip-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--primary-weak);
+  color: var(--primary);
+  font-weight: 900;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+.tip-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Q&A */
+.qa {
+  padding: 12px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+}
+
+.qa + .qa {
+  margin-top: 10px;
+}
+
+.q {
+  margin: 0 0 6px;
+  font-weight: 900;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.a {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* 모바일 */
+@media (max-width: 520px) {
+  .guide-content-wrapper {
+    padding: 100px 16px;
+  }
+
+  .guide-card {
+    padding: 16px;
+  }
+
+  .card-block {
+    padding: 12px;
+  }
+
+  .sec-title {
+    font-size: 17px;
+  }
+}
+
+> </style>

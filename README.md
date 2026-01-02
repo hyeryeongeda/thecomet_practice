@@ -1,20 +1,21 @@
-# 혜성 (Comet)
+# ☄️ 혜성 (Comet)
 사용자 취향 기반 AI 영화 추천 및 커뮤니티 서비스
 
-- 개발 기간: 2025.12.19 ~ 2025.12.25 (1학기 최종 프로젝트)
+- 개발 기간: 2025.12.19 ~ 2025.12.25
+- SSAFY 14기 관통 프로젝트 (1학기 최종 프로젝트)
 
 ---
 
 ## 1. 프로젝트 소개
-혜성(Comet)은 사용자의 취향 데이터를 기반으로 영화를 추천하고, 영화에 대한 코멘트/좋아요/보고싶어요 기능을 통해 커뮤니티 활동까지 연결하는 서비스입니다.
+혜성(Comet)은 사용자의 취향 데이터를 기반으로 영화를 추천하고, 영화에 대한 **코멘트/좋아요/보고싶어요** 기능을 통해 커뮤니티 활동까지 연결하는 서비스입니다.
 
 ---
 
 ## 2. 팀원 소개
 | 이름 | 역할 | 담당 |
 |---|---|---|
-| 김혜령(팀장) | Back-end / Front-end | DB 설계 및 백엔드 전반 구축, 프론트 구현 및 리팩토링, 일정/이슈 관리 |
-| 이규성(팀원) | Front-end / Back-end | UI/UX 시안 디자인, 프론트 구조 설계 및 구현, 백엔드 기능 보조 |
+| 김혜령(팀장) | Back-end | DB 설계 및 백엔드 전반 구축, 프론트 구현 및 리팩토링, 일정/이슈 관리 |
+| 이규성(팀원) | Front-end | UI/UX 시안 디자인, 프론트 구조 설계 및 구현, 백엔드 기능 보조 |
 
 ---
 
@@ -23,8 +24,6 @@
 - Backend: Python, Django REST Framework (DRF)  
 - Data & AI: TMDB API, GMS_KEY, VITE_YOUTUBE_API_KEY  
 - Tools: Git, Figma, Notion  
-
-
 
 ---
 
@@ -50,7 +49,9 @@
 - 최신 개봉작(더보기 → 최신 검색 이동)
 - 평론가 별점 순 작품(더보기 → 별점순 검색 이동)
 - 최근 유저 코멘트(더보기 → 전체 코멘트)
-- 코멘트 클릭시 코멘트 디테일 창 (user_id 검사 후 코멘트 수정/삭제 버튼, 댓글 작성, 댓글 삭제)
+- 코멘트 클릭 시 코멘트 디테일 창  
+  - user_id 검사 후 코멘트 수정/삭제 버튼  
+  - 댓글 작성/삭제
 
 ---
 
@@ -104,7 +105,7 @@
 ---
 
 ### (7) 도움말 탭
-<img src="./README_img/스크린샷 2025-12-26 100958.png" width="900" />
+<img src="./README_img/help.png" width="900" />
 
 - 서비스 이용 가이드 및 전반적인 소개
 
@@ -130,8 +131,7 @@
 
 ---
 
-
-
+## 5. 기술 구현 상세
 
 ### 5.1 인증/권한 처리
 - 토큰 저장 및 로그인 상태 유지 (Pinia Store)
@@ -143,44 +143,28 @@
   <summary>핵심 코드 보기 (Pinia: 로그인 상태 복구 & 토큰 저장)</summary>
 
 ```js
-  // src/stores/auth.js (핵심 부분 발췌)
+// src/stores/auth.js (핵심 부분 발췌)
 
-  // ✅ 앱 최초 진입 / 새로고침 시 로그인 상태 복구
-  async bootstrap() {
-    const access = localStorage.getItem('access') // 로컬 토큰 확인
-    if (!access) {
-      this.user = null // 토큰 없으면 비로그인 처리
-      return
-    }
+// ✅ 앱 최초 진입 / 새로고침 시 로그인 상태 복구
+async bootstrap() {
+  const access = localStorage.getItem('access') // 로컬 토큰 확인
+  if (!access) {
+    this.user = null // 토큰 없으면 비로그인 처리
+    return
+  }
 
-    try {
-      const me = await fetchMe() // ✅ 토큰으로 내 정보 조회
-      this.user = me // ✅ 로그인 상태 복구
-    } catch (e) {
-      // ✅ 토큰이 만료/오류이면 깨끗하게 정리
-      localStorage.removeItem('access')
-      localStorage.removeItem('refresh')
-      this.user = null
-    }
-  },
+  try {
+    const me = await fetchMe() // ✅ 토큰으로 내 정보 조회
+    this.user = me // ✅ 로그인 상태 복구
+  } catch (e) {
+    // ✅ 토큰이 만료/오류이면 깨끗하게 정리
+    localStorage.removeItem('access')
+    localStorage.removeItem('refresh')
+    this.user = null
+  }
+},
+````
 
-  // ✅ 로그인 성공 시 토큰 저장 + user 상태 세팅
-  async login(payload) {
-    this.loading = true
-    try {
-      const res = await apiLogin(payload) // 백엔드 로그인 API 호출
-      const { user, tokens } = res // { user, tokens:{access, refresh} }
-
-      if (tokens?.access) localStorage.setItem('access', tokens.access) // ✅ access 저장
-      if (tokens?.refresh) localStorage.setItem('refresh', tokens.refresh) // ✅ refresh 저장
-
-      this.user = user // ✅ 화면에서 즉시 로그인 상태 반영
-      return res
-    } finally {
-      this.loading = false
-    }
-  },
-```
 </details>
 
 <details>
@@ -202,14 +186,14 @@ const api = axios.create({
 // ✅ 1) 모든 요청에 access 토큰 자동 첨부
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access')
-  if (token) config.headers.Authorization = `Bearer ${token}` // 헤더 자동 주입
+  if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
 let isRefreshing = false
 let queue = []
 
-// ✅ 2) access 만료(401) → refresh로 재발급 후 원 요청 재시도 + 대기 요청 큐 처리
+// ✅ 2) 401 → refresh → 원 요청 재시도 + 대기 요청 큐 처리
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
@@ -217,12 +201,10 @@ api.interceptors.response.use(
     if (!original) return Promise.reject(error)
 
     if (error.response?.status === 401 && !original._retry) {
-      original._retry = true // 무한 재시도 방지
-
+      original._retry = true
       const refresh = localStorage.getItem('refresh')
       if (!refresh) return Promise.reject(error)
 
-      // 이미 refresh 중이면 큐에 쌓아두고, 끝나면 새 토큰으로 재시도
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           queue.push({
@@ -241,15 +223,12 @@ api.interceptors.response.use(
         const newAccess = r.data.access
         localStorage.setItem('access', newAccess)
 
-        // 큐에 대기 중이던 요청들 처리
         queue.forEach(({ resolve }) => resolve(newAccess))
         queue = []
 
-        // 실패했던 원 요청 재시도
         original.headers.Authorization = `Bearer ${newAccess}`
         return api(original)
       } catch (e) {
-        // refresh 실패 → 토큰 정리 후 로그인 다시 유도
         localStorage.removeItem('access')
         localStorage.removeItem('refresh')
         queue.forEach(({ reject }) => reject(e))
@@ -269,17 +248,17 @@ export default api
 
 </details>
 
-
-
+---
 
 ### 5.2 영화 데이터 수집/가공 (TMDB 동기화 Management Command)
-- 서비스에서 사용하는 영화/인물/크레딧 데이터를 **TMDB → DB로 사전 동기화**하여, 화면 로딩 시 외부 API 의존도를 낮추고 일관된 추천/검색 경험을 제공합니다.
-- 초기/갱신 시 동기화가 선행되어야 하며, 동기화가 되지 않으면 일부 기능에서 데이터 누락(동기화 오류)이 발생할 수 있습니다.
 
-> 관련 기능: TMDB 데이터 적재(Seed) / 홈 섹션 큐레이션 갱신  
+* 서비스에서 사용하는 영화/인물/크레딧 데이터를 **TMDB → DB로 사전 동기화**하여, 화면 로딩 시 외부 API 의존도를 낮추고 일관된 추천/검색 경험을 제공합니다.
+* 초기/갱신 시 동기화가 선행되어야 하며, 동기화가 되지 않으면 일부 기능에서 데이터 누락(동기화 오류)이 발생할 수 있습니다.
+
 > 실행 위치: `backend/` (Django)
 
 #### 실행 방법 (초기 세팅/데이터 갱신)
+
 ```bash
 # (1) TMDB 전체 데이터 벌크 동기화 (페이지 단위)
 python manage.py sync_tmdb_bulk --pages 25 --with-credits --sleep 0.35
@@ -288,12 +267,12 @@ python manage.py sync_tmdb_bulk --pages 25 --with-credits --sleep 0.35
 python manage.py sync_tmdb_home --pages 5 --no-credits
 ```
 
-
-
+---
 
 ### 5.3 코멘트/좋아요/보고싶어요 도메인 로직
-- 동일 컴포넌트에서 상태 변화(추가/삭제/수정) 즉시 반영
-- 마이페이지 보관함과 상세 페이지 연동
+
+* 동일 컴포넌트에서 상태 변화(추가/삭제/수정) 즉시 반영
+* 마이페이지 보관함과 상세 페이지 연동
 
 > 관련 파일: `src/stores/review.js`, `src/components/review/*`
 
@@ -367,8 +346,8 @@ async function handleReplySubmit(content) {
   }
 }
 ```
-</details>
 
+</details>
 
 <details>
   <summary>핵심 코드 보기 (ReviewDetailModal: 이벤트 emit으로 “상위에서 상태 일괄 관리”)</summary>
@@ -395,18 +374,18 @@ async function submitReply() {
 function deleteReply(id) {
   emit('reply-delete', id)
 }
-
 ```
+
 </details>
 
-
+---
 
 ### 5.4 AI 추천(프롬프트 제어)
-- SYSTEM_PROMPT로 출력 포맷 제한 및 추천 근거 제공
-- 사용자 입력을 필터링/정규화하여 일관된 결과 유도
+
+* SYSTEM_PROMPT로 출력 포맷 제한 및 추천 근거 제공
+* 사용자 입력을 필터링/정규화하여 일관된 결과 유도
 
 > 관련 파일: `src/components/recommend/*`
-
 
 <details>
   <summary>핵심 코드 보기 (RecommendAi: 대화 히스토리 유지 + 추천근거 렌더링)</summary>
@@ -459,19 +438,21 @@ function saveMessages() {
   const key = `comet_chat_${authStore.user?.username || 'guest'}`
   localStorage.setItem(key, JSON.stringify(messages.value))
 }
-
-
 ```
+
 </details>
 
 ---
 
 ## 6. ERD (Entity Relationship Diagram)
-핵심 도메인(User–Follow / Movie–Genre / Review–Comment / Like)을 중심으로 ERD를 구성했습니다. 
-- Review는 (user_id, movie_id) 기준으로 1인 1리뷰를 보장합니다.
-- Like/Follow는 중복을 방지하기 위해 유니크 제약을 적용했습니다.
+
+핵심 도메인(User–Follow / Movie–Genre / Review–Comment / Like)을 중심으로 ERD를 구성했습니다.
+
+* Review는 (user_id, movie_id) 기준으로 **1인 1리뷰**를 보장합니다.
+* Like/Follow는 중복 방지를 위해 **유니크 제약(Unique Constraint)**을 적용했습니다.
 
 ### 핵심 ERD
+
 <img src="./README_img/erd_core.png" width="900" />
 
 <details>
@@ -480,10 +461,10 @@ function saveMessages() {
   <img src="./README_img/erd_full.png" width="900" />
 </details>
 
-
 ---
 
 ## 7. Component Structure
+
 Vue.js 컴포넌트 구조도
 “View는 흐름(라우팅/상태), Component는 UI 재사용” 원칙으로 구조화
 카드/행(Row) 컴포넌트는 여러 화면에서 동일 UI를 공유
@@ -493,15 +474,16 @@ Vue.js 컴포넌트 구조도
   <summary>컴포넌트 구조 보기</summary>
   <br/>
   <img src="./README_img/components_diagram.png" width="900" />
+  <br/>
+  👉 원본 PDF: <a href="./README_img/components_diagram2.pdf">components_diagram2.pdf</a>
 </details>
-
-
 
 ---
 
 ## 8. 회고
-- 김혜령
-**혜성(Comet)**을 진행하면서 “기능이 따로 존재하는 게 아니라, 서로 연결되어 하나의 서비스 경험이 된다”는 걸 끝까지 구현하며 체감했다. 단순히 화면을 만들고 API를 붙이는 수준이 아니라, 로그인 상태 유지 → 영화 상세에서 액션(좋아요/코멘트/보고싶어요) → 마이페이지/취향분석/추천으로 자연스럽게 이어지는 흐름을 맞추는 과정이 가장 큰 학습이었다.
+
+* 김혜령
+  **혜성(Comet)**을 진행하면서 “기능이 따로 존재하는 게 아니라, 서로 연결되어 하나의 서비스 경험이 된다”는 걸 끝까지 구현하며 체감했다. 단순히 화면을 만들고 API를 붙이는 수준이 아니라, 로그인 상태 유지 → 영화 상세에서 액션(좋아요/코멘트/보고싶어요) → 마이페이지/취향분석/추천으로 자연스럽게 이어지는 흐름을 맞추는 과정이 가장 큰 학습이었다.
 
 특히 기억에 남는 건 **인증/권한 처리와 상태 동기화**였다. Pinia로 로그인 상태를 복구하고, Axios interceptor로 토큰 주입/401 refresh/요청 큐 처리를 구성하면서 “사용자는 끊김 없이 쓰는데 내부에서는 안정적으로 갱신되는 구조”가 왜 중요한지 배웠다. 또한 코멘트/좋아요/보고싶어요처럼 상태 변화가 잦은 도메인은, 컴포넌트를 잘게 나누는 것만큼 **상위에서 상태를 일괄 관리하고 즉시 반영하는 설계**가 유지보수에 결정적이라는 걸 느꼈다.
 
@@ -511,18 +493,13 @@ Vue.js 컴포넌트 구조도
 
 결과적으로 이번 프로젝트는 Vue + DRF로 **실제 서비스 수준의 흐름(회원/리뷰/추천/마이페이지)을 처음부터 끝까지 완성**해본 경험이었다. 다음 단계에서는 추천 품질(프롬프트/필터/평가)과 데이터 설계(확장 가능한 취향 지표), 그리고 성능(캐싱/쿼리 최적화)까지 신경 쓰는 방향으로 발전시키고 싶다.
 
-
-
-
 ---
 
-
-- 이규성
-
-실제 서비스 흐름(회원/리뷰/추천/마이페이지)을 끝까지 구현해보며, “기능이 연결되는 경험”을 제대로 해볼 수 있어 의미 있었다.
-프론트 UI/UX 시안을 기반으로 화면 구조를 설계하고 구현하면서 컴포넌트 분리, 재사용 구조에 대한 감각이 생겼다.
+* 이규성
+  실제 서비스 흐름(회원/리뷰/추천/마이페이지)을 끝까지 구현해보며, “기능이 연결되는 경험”을 제대로 해볼 수 있어 의미 있었다.
+  프론트 UI/UX 시안을 기반으로 화면 구조를 설계하고 구현하면서 컴포넌트 분리, 재사용 구조에 대한 감각이 생겼다.
 
 이번 프로젝트를 하면서 프론트(화면/UX)를 먼저 그려두고 → 그 흐름에 맞춰 백엔드를 설계하는 방식이 오히려 전체 구현이 더 수월하다고 느꼈다.
 LLM을 정말 많이 활용하며 개발했는데, “도구를 쓰는 것”과 “제대로 검증하며 쓰는 것”은 다르다는 걸 체감했다. 프롬프트 작성/검증/리팩토링 관점에서 더 공부가 필요하다고 느꼈다.
 
-다만 아쉬웠던 점은 협업 과정에서 작업 방향과 우선순위를 조금 더 자주 공유했으면 하는 점이다.  
+다만 아쉬웠던 점은 협업 과정에서 작업 방향과 우선순위를 조금 더 자주 공유했으면 하는 점이다.

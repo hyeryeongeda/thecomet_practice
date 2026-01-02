@@ -27,7 +27,110 @@
 
 ---
 
-## 4. 핵심 기능 (GIF)
+## 4. 실행 방법 (Getting Started)
+
+> ✅ 실행 전 준비물  
+> - Python 3.10+ (권장)  
+> - Node.js 18+ (권장)  
+> - TMDB API Key  
+> - (선택) YouTube API Key  
+> - (선택) GMS_KEY (AI 추천 호출 시)
+
+### 4.1 레포 클론
+```bash
+git clone <YOUR_REPO_URL>
+cd <YOUR_REPO_FOLDER>
+````
+
+---
+
+### 4.2 Backend (Django REST Framework)
+
+```bash
+cd backend
+
+# 가상환경 생성/활성화
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+# macOS/Linux
+source venv/bin/activate
+
+# 패키지 설치
+pip install -r requirements.txt
+
+# 마이그레이션
+python manage.py migrate
+```
+
+#### ✅ Backend 환경변수 설정 (.env)
+
+`backend/.env` 파일을 만들고 아래 형식으로 작성하세요.
+
+```env
+DJANGO_SECRET_KEY=YOUR_SECRET_KEY
+DEBUG=1
+ALLOWED_HOSTS=127.0.0.1,localhost
+
+TMDB_API_KEY=YOUR_TMDB_KEY
+GMS_KEY=YOUR_GMS_KEY
+YOUTUBE_API_KEY=YOUR_YOUTUBE_KEY
+```
+
+#### 서버 실행
+
+```bash
+python manage.py runserver
+```
+
+---
+
+### 4.3 Frontend (Vue 3 + Vite)
+
+```bash
+cd ../frontend
+npm install
+npm run dev
+```
+
+#### ✅ Frontend 환경변수 설정 (.env)
+
+`frontend/.env` 파일을 만들고 아래 형식으로 작성하세요.
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000/api
+VITE_YOUTUBE_API_KEY=YOUR_YOUTUBE_KEY
+```
+
+---
+
+### 4.4 TMDB 데이터 동기화 (초기 세팅 필수)
+
+> ✅ 프로젝트는 TMDB 데이터를 DB에 **사전 적재(동기화)** 후 사용합니다.
+> 데이터가 없으면 일부 기능(검색/추천/상세/인물)이 정상 동작하지 않을 수 있습니다.
+
+```bash
+cd ../backend
+source venv/bin/activate  # (Windows는 venv\Scripts\activate)
+
+# (1) 전체 데이터 벌크 동기화
+python manage.py sync_tmdb_bulk --pages 25 --with-credits --sleep 0.35
+
+# (2) 홈 화면 구성용 데이터 동기화(빠른 갱신)
+python manage.py sync_tmdb_home --pages 5 --no-credits
+```
+
+---
+
+### 4.5 접속 URL
+
+* Frontend: [http://localhost:5173](http://localhost:5173)
+* Backend(API): [http://127.0.0.1:8000/api](http://127.0.0.1:8000/api)
+
+---
+
+## 5. 핵심 기능 (GIF)
 
 ### (1) 페이지 공통 기능
 <img src="./README_img/common.gif" width="900" />
@@ -131,9 +234,9 @@
 
 ---
 
-## 5. 기술 구현 상세
+## 6. 기술 구현 상세
 
-### 5.1 인증/권한 처리
+### 6.1 인증/권한 처리
 - 토큰 저장 및 로그인 상태 유지 (Pinia Store)
 - API 요청 시 인증 헤더 자동 적용 (Axios Interceptor)
 
@@ -250,7 +353,7 @@ export default api
 
 ---
 
-### 5.2 영화 데이터 수집/가공 (TMDB 동기화 Management Command)
+### 6.2 영화 데이터 수집/가공 (TMDB 동기화 Management Command)
 
 * 서비스에서 사용하는 영화/인물/크레딧 데이터를 **TMDB → DB로 사전 동기화**하여, 화면 로딩 시 외부 API 의존도를 낮추고 일관된 추천/검색 경험을 제공합니다.
 * 초기/갱신 시 동기화가 선행되어야 하며, 동기화가 되지 않으면 일부 기능에서 데이터 누락(동기화 오류)이 발생할 수 있습니다.
@@ -269,7 +372,7 @@ python manage.py sync_tmdb_home --pages 5 --no-credits
 
 ---
 
-### 5.3 코멘트/좋아요/보고싶어요 도메인 로직
+### 6.3 코멘트/좋아요/보고싶어요 도메인 로직
 
 * 동일 컴포넌트에서 상태 변화(추가/삭제/수정) 즉시 반영
 * 마이페이지 보관함과 상세 페이지 연동
@@ -380,7 +483,7 @@ function deleteReply(id) {
 
 ---
 
-### 5.4 AI 추천(프롬프트 제어)
+### 6.4 AI 추천(프롬프트 제어)
 
 * SYSTEM_PROMPT로 출력 포맷 제한 및 추천 근거 제공
 * 사용자 입력을 필터링/정규화하여 일관된 결과 유도
@@ -444,7 +547,7 @@ function saveMessages() {
 
 ---
 
-## 6. ERD (Entity Relationship Diagram)
+## 7. ERD (Entity Relationship Diagram)
 
 핵심 도메인(User–Follow / Movie–Genre / Review–Comment / Like)을 중심으로 ERD를 구성했습니다.
 
@@ -463,7 +566,7 @@ function saveMessages() {
 
 ---
 
-## 7. Component Structure
+## 8. Component Structure
 
 Vue.js 컴포넌트 구조도
 “View는 흐름(라우팅/상태), Component는 UI 재사용” 원칙으로 구조화
@@ -480,10 +583,10 @@ Vue.js 컴포넌트 구조도
 
 ---
 
-## 8. 회고
+## 9. 회고
 
-* 김혜령
-  **혜성(Comet)**을 진행하면서 “기능이 따로 존재하는 게 아니라, 서로 연결되어 하나의 서비스 경험이 된다”는 걸 끝까지 구현하며 체감했다. 단순히 화면을 만들고 API를 붙이는 수준이 아니라, 로그인 상태 유지 → 영화 상세에서 액션(좋아요/코멘트/보고싶어요) → 마이페이지/취향분석/추천으로 자연스럽게 이어지는 흐름을 맞추는 과정이 가장 큰 학습이었다.
+김혜령
+**혜성(Comet)**을 진행하면서 “기능이 따로 존재하는 게 아니라, 서로 연결되어 하나의 서비스 경험이 된다”는 걸 끝까지 구현하며 체감했다. 단순히 화면을 만들고 API를 붙이는 수준이 아니라, 로그인 상태 유지 → 영화 상세에서 액션(좋아요/코멘트/보고싶어요) → 마이페이지/취향분석/추천으로 자연스럽게 이어지는 흐름을 맞추는 과정이 가장 큰 학습이었다.
 
 특히 기억에 남는 건 **인증/권한 처리와 상태 동기화**였다. Pinia로 로그인 상태를 복구하고, Axios interceptor로 토큰 주입/401 refresh/요청 큐 처리를 구성하면서 “사용자는 끊김 없이 쓰는데 내부에서는 안정적으로 갱신되는 구조”가 왜 중요한지 배웠다. 또한 코멘트/좋아요/보고싶어요처럼 상태 변화가 잦은 도메인은, 컴포넌트를 잘게 나누는 것만큼 **상위에서 상태를 일괄 관리하고 즉시 반영하는 설계**가 유지보수에 결정적이라는 걸 느꼈다.
 
@@ -495,9 +598,9 @@ Vue.js 컴포넌트 구조도
 
 ---
 
-* 이규성
-  실제 서비스 흐름(회원/리뷰/추천/마이페이지)을 끝까지 구현해보며, “기능이 연결되는 경험”을 제대로 해볼 수 있어 의미 있었다.
-  프론트 UI/UX 시안을 기반으로 화면 구조를 설계하고 구현하면서 컴포넌트 분리, 재사용 구조에 대한 감각이 생겼다.
+이규성
+실제 서비스 흐름(회원/리뷰/추천/마이페이지)을 끝까지 구현해보며, “기능이 연결되는 경험”을 제대로 해볼 수 있어 의미 있었다.
+프론트 UI/UX 시안을 기반으로 화면 구조를 설계하고 구현하면서 컴포넌트 분리, 재사용 구조에 대한 감각이 생겼다.
 
 이번 프로젝트를 하면서 프론트(화면/UX)를 먼저 그려두고 → 그 흐름에 맞춰 백엔드를 설계하는 방식이 오히려 전체 구현이 더 수월하다고 느꼈다.
 LLM을 정말 많이 활용하며 개발했는데, “도구를 쓰는 것”과 “제대로 검증하며 쓰는 것”은 다르다는 걸 체감했다. 프롬프트 작성/검증/리팩토링 관점에서 더 공부가 필요하다고 느꼈다.
